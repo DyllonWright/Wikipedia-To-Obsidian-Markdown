@@ -1,91 +1,79 @@
-# Wikipedia to Markdown Converter
+# Wikipedia to Markdown Converter (Node.js)
 
-This script converts any Wikipedia article into a clean, **Obsidian-compatible Markdown file**, preserving structure, references, images, and (optionally) tables from the official PDF export. It is designed to be **robust, polite to Wikipedia servers**, and easy to use.
+This tool is a command-line interface (CLI) built with Node.js that converts a Wikipedia article into a clean, readable Markdown file. It leverages the Gemini API to intelligently extract the main article content and identify the most relevant image.
 
----
+## Features
 
-## ✨ Features
+-   **Intelligent Content Extraction:** Uses a large language model to parse the main content of a Wikipedia article, ignoring irrelevant elements like navigation bars and sidebars.
+-   **Image Identification:** Automatically identifies the most relevant image in the article (typically from the infobox) and includes it in the Markdown output.
+-   **Markdown Conversion:** Converts the extracted HTML into well-formatted Markdown.
+-   **Local File Storage:** Saves the final Markdown file and the downloaded image to a local `output` directory.
 
-* **Accurate Markdown Structure:** Converts Wikipedia headings (`h1`–`h6`) into Markdown (`#`–`######`), with lists and paragraphs preserved.
-* **Obsidian-Compatible Images:** Extracts images into `![alt text](image_url)` format.
-* **Inline References Preserved:** Inline citation markers (e.g., `[1]`) are escaped as `\[1]`.
-* **Reference Section:** Appends a `## References` section with numbered footnotes.
-* **Optional PDF Table Extraction:** Downloads the Wikipedia PDF and extracts tabular data as Markdown tables (with proper spacing for Obsidian).
-* **Safe HTTP Requests:** Uses a descriptive `User-Agent`, request timeouts, and retry with exponential backoff (for compliance with Wikimedia API policies).
-* **Flexible CLI Options:**
+## Technology Stack
 
-  * `--no-pdf` → skip PDF download/table extraction.
-  * `-o` / `--outdir` → choose output directory (default: `~/Downloads`).
-  * `--stop` → stop processing at extra section headings (e.g., `"External links"`).
-* **Clean Output:** Saves the final `.md` file with the article title as the filename.
+-   **Runtime:** Node.js
+-   **Dependencies:**
+    -   `axios`: To fetch the HTML from the Wikipedia URL and download images.
+    -   `@google/generative-ai`: To interact with the Gemini API.
+    -   `dotenv`: To manage environment variables for the API key.
 
----
+## Project Structure
 
-## 📦 Requirements
+```
+.
+├── output/           <-- Generated Markdown files and images are saved here
+├── .env              <-- For your GEMINI_API_KEY
+├── .gitignore        <-- To exclude node_modules and .env from Git
+├── index.js          <-- The main script
+└── package.json
+```
 
-* **Python** 3.8 or newer
-* Dependencies:
+## Setup and Usage
 
-  ```bash
-  pip install requests beautifulsoup4
-  ```
-* Optional (for table extraction):
+**1. Installation:**
 
-  ```bash
-  pip install pdfplumber
-  ```
+First, install the necessary dependencies:
 
----
+```bash
+npm install
+```
 
-## 🚀 Usage
+**2. API Key Configuration:**
 
-1. Save the script as `wikipedia_to_markdown.py`.
+Create a `.env` file in the root of the project and add your Gemini API key:
 
-2. Run it with a Wikipedia article URL:
+```
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
 
-   ```bash
-   python wikipedia_to_markdown.py "https://en.wikipedia.org/wiki/The_Gambler_(2014_film)"
-   ```
+Replace `YOUR_GEMINI_API_KEY` with your actual API key.
 
-3. Find the Markdown file in your `~/Downloads` folder (or custom directory if specified).
+**3. Running the Script:**
 
----
+Execute the script from your terminal with a Wikipedia URL as the argument:
 
-### 🔧 Options
+```bash
+node index.js "https://en.wikipedia.org/wiki/JavaScript"
+```
 
-* **Disable PDF tables**
+The script will create a new Markdown file and download the main image to the `output` directory.
 
-  ```bash
-  python wikipedia_to_markdown.py "URL" --no-pdf
-  ```
-* **Custom output directory**
+## How to Update Your GitHub Repository
 
-  ```bash
-  python wikipedia_to_markdown.py "URL" -o ./notes
-  ```
-* **Stop at extra sections**
+To integrate this new pipeline into your existing project, follow these steps:
 
-  ```bash
-  python wikipedia_to_markdown.py "URL" --stop "External links" "Further reading"
-  ```
+1.  **Copy the Files:** Copy all the files from this project (`index.js`, `package.json`, `package-lock.json`, `.gitignore`, and the new `README.md`) into your existing repository, except for the `GEMINI.md` file.
 
----
+2.  **Add a `.gitignore` File:** A `.gitignore` file has been included to prevent you from accidentally committing your `.env` file (which contains your secret API key) and the `node_modules` directory to your repository. This is crucial for security and to keep your repository lightweight.
 
-## 📄 Output Example
+3.  **Commit and Push the Changes:** Use the following Git commands to add the new files and push them to your repository:
 
-The Markdown file will include:
+    ```bash
+    git add .
+    git commit -m "feat: Add Wikipedia to Markdown conversion pipeline"
+    git push
+    ```
 
-* A top-level heading linking back to the article
-* All main content (headings, paragraphs, lists)
-* Obsidian-style image embeds
-* Escaped inline reference markers
-* A full References section
-* (Optional) Extracted PDF tables with proper Markdown formatting
+4.  **Replicating on Other Devices:**
 
----
-
-## ⚙️ Development Notes
-
-* The script uses the [Wikipedia REST API PDF endpoint](https://en.wikipedia.org/api/rest_v1/#/Page%20content/get_page_pdf__title_) for tables.
-* Requests are retried on transient errors (429, 503, etc.) with exponential backoff.
-* Please replace the placeholder contact in the `User-Agent` string with your own (email or website), per Wikimedia API policy.
+    To use this pipeline on another device, clone your repository and then create a new `.env` file on that device with your `GEMINI_API_KEY`. This ensures that your API key remains secure and is never stored in the repository.
