@@ -50,7 +50,12 @@ async function extractContentWithGemini(html) {
   const text = await response.text();
   // Remove markdown code block delimiters if present
   const cleanedText = text.replace(/^```json\n|\n```$/g, '');
-  return JSON.parse(cleanedText);
+  try {
+    return JSON.parse(cleanedText);
+  } catch(e) {
+    console.error("Failed to parse JSON:", cleanedText);
+    throw e;
+  }
 }
 
 /**
@@ -68,7 +73,7 @@ async function downloadImage(url, directory) {
       }
     });
     const imageName = path.basename(new URL(url).pathname);
-    const imagePath = path.join(directory, imageName);
+    const imagePath = path.join(imagesDir, imageName);
     await fs.writeFile(imagePath, response.data);
     return imagePath;
   } catch (error) {
@@ -126,10 +131,10 @@ async function main() {
     let finalMarkdown = markdown;
     if (imageUrl) {
       console.log(`Downloading image from ${imageUrl}...`);
-      const imagePath = await downloadImage(imageUrl, outputDir);
+      const imagePath = await downloadImage(imageUrl, imagesDir);
       if (imagePath) {
         const relativeImagePath = path.relative(outputDir, imagePath);
-        finalMarkdown = `![${path.basename(imagePath)}](${path.basename(imagePath)})\n\n${markdown}`;
+        finalMarkdown = `![${path.basename(imagePath)}](${relativeImagePath.replace(/\\/g, '/')})\n\n${markdown}`;
       }
     }
 
