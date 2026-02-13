@@ -177,7 +177,7 @@ async function main() {
 
 
     let finalMarkdown = markdown;
-    if (imageUrl) {
+    if (imageUrl && imageUrl.startsWith('http')) {
       console.log(`Downloading main image from ${imageUrl}...`);
       const imageName = path.basename(new URL(imageUrl).pathname);
       const imagePath = path.join(articleDir, imageName);
