@@ -1,13 +1,14 @@
 # Wikipedia to Markdown Converter (Node.js)
 
-This tool is a command-line interface (CLI) built with Node.js that converts a Wikipedia article into a clean, readable Markdown file. It leverages the Gemini API to intelligently extract the main article content and identify the most relevant image.
+This tool is a command-line interface (CLI) built with Node.js that converts a Wikipedia article into a clean, readable Markdown file. It leverages the Gemini API to intelligently extract the main article content, identify the most relevant image, and download all images from the article.
 
 ## Features
 
--   **Intelligent Content Extraction:** Uses a large language model to parse the main content of a Wikipedia article, ignoring irrelevant elements like navigation bars and sidebars.
--   **Image Identification:** Automatically identifies the most relevant image in the article (typically from the infobox) and includes it in the Markdown output.
+-   **Intelligent Content Extraction:** Uses a large language model to parse the main content of a Wikipedia article, ignoring irrelevant elements.
+-   **Image Identification:** Automatically identifies the most relevant image in the article and includes it in the Markdown output.
+-   **Full Image Scraping:** Downloads all other `.jpg` and `.png` images from the article and saves them locally.
+-   **Organized Output:** Creates a dedicated directory for each article to store the Markdown file and all associated images.
 -   **Markdown Conversion:** Converts the extracted HTML into well-formatted Markdown.
--   **Local File Storage:** Saves the final Markdown file and the downloaded image to a local `output` directory.
 
 ## Technology Stack
 
@@ -15,16 +16,20 @@ This tool is a command-line interface (CLI) built with Node.js that converts a W
 -   **Dependencies:**
     -   `axios`: To fetch the HTML from the Wikipedia URL and download images.
     -   `@google/generative-ai`: To interact with the Gemini API.
+    -   `cheerio`: To parse the HTML and extract all image tags.
     -   `dotenv`: To manage environment variables for the API key.
 
 ## Project Structure
 
 ```
 .
-├── output/           <-- Generated Markdown files and images are saved here
-├── .env              <-- For your GEMINI_API_KEY
-├── .gitignore        <-- To exclude node_modules and .env from Git
-├── index.js          <-- The main script
+├── output/
+│   └── [article_title]/    <-- A directory is created for each article
+│       ├── article.md      <-- The generated Markdown file
+│       └── ...images...    <-- All downloaded images for the article
+├── .env                      <-- For your GEMINI_API_KEY
+├── .gitignore                <-- To exclude node_modules and .env from Git
+├── index.js                  <-- The main script
 └── package.json
 ```
 
@@ -56,24 +61,4 @@ Execute the script from your terminal with a Wikipedia URL as the argument:
 node index.js "https://en.wikipedia.org/wiki/JavaScript"
 ```
 
-The script will create a new Markdown file and download the main image to the `output` directory.
-
-## How to Update Your GitHub Repository
-
-To integrate this new pipeline into your existing project, follow these steps:
-
-1.  **Copy the Files:** Copy all the files from this project (`index.js`, `package.json`, `package-lock.json`, `.gitignore`, and the new `README.md`) into your existing repository, except for the `GEMINI.md` file.
-
-2.  **Add a `.gitignore` File:** A `.gitignore` file has been included to prevent you from accidentally committing your `.env` file (which contains your secret API key) and the `node_modules` directory to your repository. This is crucial for security and to keep your repository lightweight.
-
-3.  **Commit and Push the Changes:** Use the following Git commands to add the new files and push them to your repository:
-
-    ```bash
-    git add .
-    git commit -m "feat: Add Wikipedia to Markdown conversion pipeline"
-    git push
-    ```
-
-4.  **Replicating on Other Devices:**
-
-    To use this pipeline on another device, clone your repository and then create a new `.env` file on that device with your `GEMINI_API_KEY`. This ensures that your API key remains secure and is never stored in the repository.
+The script will create a new directory named after the article (e.g., `output/javascript/`) containing the `article.md` file and all images downloaded from the page.
