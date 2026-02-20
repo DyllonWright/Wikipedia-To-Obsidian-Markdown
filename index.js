@@ -41,7 +41,7 @@ async function extractContentWithGemini(html) {
     You will be given the HTML of a Wikipedia article.
     Your task is to:
     1.  Extract the main article content and convert it to well-formatted, Github-flavored Markdown.
-    2.  **Crucially, convert all relative Wikipedia links (e.g., `/wiki/Some_Article`) to full URLs (e.g., `https://en.wikipedia.org/wiki/Some_Article`).**
+    2.  **Crucially, convert all relative Wikipedia links (e.g., \`/wiki/Some_Article\`) to full URLs (e.g., \`https://en.wikipedia.org/wiki/Some_Article\`).**
     3.  Identify the URL of the most relevant image in the article.
     4.  Return the content in the following format, with no other text or explanation:
 
