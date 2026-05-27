@@ -1,0 +1,92 @@
+/* obsidian-plugin/styles.css */
+
+/* Movie details banner: softer violet theme with premium glow and excellent contrast */
+.wiki-movie-banner {
+  background-color: rgba(139, 92, 246, 0.08) !important; /* Soft premium violet translucent */
+  border: 1px solid rgba(139, 92, 246, 0.25) !important; /* Subtle violet border */
+  border-radius: 8px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.wiki-movie-banner h3 {
+  color: #a78bfa !important; /* Extremely readable soft violet accent color */
+  font-weight: 600 !important;
+  font-size: 1.05em !important;
+  margin: 0 0 12px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* Movie inputs fields styling */
+.wiki-movie-banner label {
+  color: #c084fc !important; /* Soft lavender for input labels */
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-bottom: 4px !important;
+}
+
+.wiki-movie-banner input[type="text"] {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 4px !important;
+  color: var(--text-normal) !important;
+  padding: 6px 10px !important;
+}
+
+.wiki-movie-banner input[type="text"]:focus {
+  border-color: #a78bfa !important;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.3) !important;
+}
+
+/* Softer modal headings */
+.modal h2, .wiki-modal-configure-grid h3 {
+  color: #67e8f9 !important; /* Soft neon cyan for strong contrast and high legibility */
+  font-weight: 600 !important;
+  letter-spacing: -0.2px !important;
+}
+
+/* Checklist items and list backgrounds */
+.wiki-sections-container,
+.wiki-modal-configure-grid div[style*="background: var(--background-secondary)"] {
+  background-color: rgba(30, 41, 59, 0.5) !important; /* Deep dark slate translucent */
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+}
+
+.wiki-section-checkbox, .wiki-image-checkbox {
+  accent-color: #06b6d4 !important; /* cyan accent for checkboxes */
+}
+
+/* Image attachment cards */
+.wiki-image-item, 
+.wiki-modal-configure-grid div[style*="gap: 10px"] > div {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.wiki-image-item input[type="text"], 
+.wiki-image-name-input {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 4px !important;
+  padding: 6px 10px !important;
+  color: var(--text-normal) !important;
+}
+
+.wiki-image-item input[type="text"]:focus, 
+.wiki-image-name-input:focus {
+  border-color: #06b6d4 !important;
+}
+
+/* Server Status Banner */
+.wiki-modal-container > div[style*="border-radius: 4px"] {
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}

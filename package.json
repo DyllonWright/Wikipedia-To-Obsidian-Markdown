@@ -1,20 +1,24 @@
 {
-  "name": "wikipedia-to-markdown",
+  "name": "wikipedia-to-obsidian-markdown",
   "version": "1.0.0",
   "description": "This script takes a Wikipedia article URL, fetches the page content, converts the headings, lists, and tables to Markdown, and saves the result as a `.md` file in the user's `Downloads` directory.",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "DyllonWright",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.2",
     "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "express": "^4.19.2",
     "turndown": "^7.2.2"
   }
 }

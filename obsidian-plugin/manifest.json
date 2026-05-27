@@ -1,0 +1,10 @@
+{
+  "id": "wikipedia-obsidian-importer",
+  "name": "Wikipedia Obsidian Importer",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Imports Wikipedia articles directly into Obsidian with custom image renaming, section toggling, and table structures via a local scraping server.",
+  "author": "Gemini & Antigravity",
+  "authorUrl": "https://github.com/djwri/wikipedia_to_markdown",
+  "isDesktopOnly": true
+}

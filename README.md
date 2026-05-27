@@ -1,64 +1,104 @@
-# Wikipedia to Markdown Converter (Node.js)
+# Wikipedia ✦ Obsidian Importer
 
-This tool is a command-line interface (CLI) built with Node.js that converts a Wikipedia article into a clean, readable Markdown file. It leverages the Gemini API to intelligently extract the main article content, identify the most relevant image, and download all images from the article.
+A modern, highly-polished tool designed to clean, structure, and import Wikipedia articles directly into your **Obsidian Vault** with zero friction. It converts headings, lists, and tables into perfect Markdown, downloads high-resolution page attachments, and supports automated image naming rules.
 
-## Features
+This project consists of three main components:
+1. **Programmatic Scraper & Parser**: A robust backend that strips unnecessary Wikipedia layouts, resolves thumbnail images to high-resolution originals, and flattens complex tables into clean GFM Markdown tables.
+2. **Interactive Web GUI Dashboard**: A premium, glassmorphic dark-mode web application to paste URLs, customize section selections, rename files with dynamic suggestions, and preview live Markdown.
+3. **Companion Obsidian Plugin**: A native Obsidian plugin that interacts with the local server to run the import panel directly inside your vault.
 
--   **Intelligent Content Extraction:** Uses a large language model to parse the main content of a Wikipedia article, ignoring irrelevant elements.
--   **Image Identification:** Automatically identifies the most relevant image in the article and includes it in the Markdown output.
--   **Full Image Scraping:** Downloads all other `.jpg` and `.png` images from the article and saves them locally.
--   **Organized Output:** Creates a dedicated directory for each article to store the Markdown file and all associated images.
--   **Markdown Conversion:** Converts the extracted HTML into well-formatted Markdown.
+---
 
-## Technology Stack
+## ✦ Key Features
 
--   **Runtime:** Node.js
--   **Dependencies:**
-    -   `axios`: To fetch the HTML from the Wikipedia URL and download images.
-    -   `@google/generative-ai`: To interact with the Gemini API.
-    -   `cheerio`: To parse the HTML and extract all image tags.
-    -   `dotenv`: To manage environment variables for the API key.
+- **Smart Gemini Integration**:
+  - Automatically identifies if the page is about a **movie/film**.
+  - Extracts the official title and release year.
+  - Suggests descriptive, clean image filenames (omitting icons/layout assets) based on a prefix date and the image's caption.
+- **Custom Image Naming Conventions**:
+  - Automatically formats standard images as: `YYYY MM DD Brief Description.ext`
+  - Formats movie covers as: `YYYY MM DD Movie Title (YYYY) Theatrical Release Poster.ext`
+- **Obsidian Vault Integration**:
+  - Save directly to your vault root or subfolders.
+  - Places attachments into your default Obsidian attachments folder (e.g. `Attachments/`), instantly resolving all in-context links.
+- **Section Selection Checklist**:
+  - Preview the structure of the article and toggle individual headings on or off before exporting.
+  - Automatically excludes index lists, external links, and stub sections by default.
+- **Robust Link Processing**:
+  - Select between standard Markdown links `[Text](URL)`, native Obsidian Wikilinks `[[Target|Text]]`, commented-out links using Obsidian's hidden comment markers `Text%%[Link](URL)%%`, or pure plain text.
+- **Table Flattener**:
+  - Programmatically resolves HTML tables containing cells with `colspan` and `rowspan` parameters, ensuring table structures do not break when rendered in Markdown.
 
-## Project Structure
+---
 
-```
-.
-├── output/
-│   └── [article_title]/    <-- A directory is created for each article
-│       ├── article.md      <-- The generated Markdown file
-│       └── ...images...    <-- All downloaded images for the article
-├── .env                      <-- For your GEMINI_API_KEY
-├── .gitignore                <-- To exclude node_modules and .env from Git
-├── index.js                  <-- The main script
-└── package.json
-```
+## ✦ Quick Start
 
-## Setup and Usage
+### 1. Installation
 
-**1. Installation:**
-
-First, install the necessary dependencies:
-
+Clone this repository and install the dependencies:
 ```bash
 npm install
 ```
 
-**2. API Key Configuration:**
+### 2. Configure Environment
 
-Create a `.env` file in the root of the project and add your Gemini API key:
-
+Create a `.env` file in the root of the project (you can copy `.env.example` as a starting point) and add your Gemini API Key:
+```env
+GEMINI_API_KEY=YOUR_ACTUAL_GEMINI_API_KEY
+PORT=3000
 ```
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
-```
 
-Replace `YOUR_GEMINI_API_KEY` with your actual API key.
+### 3. Run the Server
 
-**3. Running the Script:**
-
-Execute the script from your terminal with a Wikipedia URL as the argument:
-
+Start the local server in watch mode:
 ```bash
-node index.js "https://en.wikipedia.org/wiki/JavaScript"
+npm run dev
+```
+Once started, you will see a console printout:
+```
+==================================================
+Wikipedia to Obsidian Markdown Server Running!
+Access GUI: http://localhost:3000
+==================================================
 ```
 
-The script will create a new directory named after the article (e.g., `output/javascript/`) containing the `article.md` file and all images downloaded from the page.
+Open your browser and navigate to `http://localhost:3000` to access the full-featured dashboard.
+
+---
+
+## ✦ Companion Obsidian Plugin Setup
+
+To import Wikipedia pages without leaving Obsidian, you can install the custom companion plugin located in the `obsidian-plugin/` directory:
+
+1. Open your Obsidian vault folder in your file explorer.
+2. Locate or create the directory: `<vault-root>/.obsidian/plugins/` (note: `.obsidian` is a hidden directory).
+3. Create a subfolder named `wikipedia-obsidian-importer`.
+4. Copy the following files from this repository's `obsidian-plugin/` folder into that subfolder:
+   - `manifest.json`
+   - `main.js`
+5. Open Obsidian, navigate to **Settings** -> **Community Plugins**, click **Reload**, and enable **Wikipedia Obsidian Importer**.
+6. Make sure the local Node.js server (`npm run dev`) is running. Click the new ribbon icon or run the command `Import Wikipedia Page` to start importing notes natively inside Obsidian!
+
+---
+
+## ✦ Project Architecture
+
+```
+.
+├── public/                 <-- Interactive Web GUI Dashboard
+│   ├── index.html          <-- UI layout structure
+│   ├── style.css           <-- Premium glassmorphic styling
+│   └── app.js              <-- Front-end controller & states
+├── src/                    <-- Backend logic modules
+│   ├── parser.js           <-- Programmatic cheerio scraping & element filtering
+│   ├── gemini.js           <-- Gemini metadata extraction & image naming suggestions
+│   └── exporter.js         <-- High-res image download & file export manager
+├── obsidian-plugin/        <-- Obsidian Plugin Companion
+│   ├── manifest.json       <-- Plugin configuration
+│   ├── main.js             <-- Native Obsidian modal, settings, and file writers
+│   └── README.md           <-- Plugin installation instructions
+├── output/                 <-- Fallback local output folder
+├── .env.example            <-- Environment template
+├── server.js               <-- Express server entrypoint
+└── package.json            <-- Dependency configuration
+```

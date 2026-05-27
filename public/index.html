@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wikipedia ✦ Obsidian Importer</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-decor">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">✦</span>
+        <h1>Wiki<span>To</span>Obsidian</h1>
+      </div>
+      <div class="tagline">Seamlessly convert Wikipedia articles into rich, organized Obsidian notes</div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Left Column: Settings Sidebar -->
+      <aside class="sidebar-panel glass">
+        <h2>Configuration</h2>
+        
+        <div class="form-group">
+          <label for="wiki-url">Wikipedia URL</label>
+          <div class="input-with-button">
+            <input type="text" id="wiki-url" placeholder="https://en.wikipedia.org/wiki/JavaScript" autocomplete="off">
+            <button id="btn-analyze" class="glow-button">Analyze</button>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="form-group toggle-group">
+          <div class="toggle-label">
+            <h3>Save Directly to Vault</h3>
+            <p>Save notes and images straight to Obsidian</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="save-to-vault">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="vault-settings" class="vault-settings-expanded collapsed">
+          <div class="form-group">
+            <label for="vault-path">Obsidian Vault Path (Absolute)</label>
+            <input type="text" id="vault-path" placeholder="C:\Users\Name\Documents\Obsidian\MyVault">
+            <span class="help-text">Where your vault root is located on your computer</span>
+          </div>
+
+          <div class="form-group">
+            <label for="attachments-folder">Attachments Folder Name</label>
+            <input type="text" id="attachments-folder" value="Attachments">
+            <span class="help-text">Name of your attachments subfolder (e.g. "Attachments" or "resources")</span>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="form-group">
+          <label for="import-date">Import Date (for Image Prefix)</label>
+          <input type="date" id="import-date">
+        </div>
+
+        <div class="form-group">
+          <label for="link-mode">Link Processing Mode</label>
+          <select id="link-mode">
+            <option value="standard">Standard Markdown Link [Text](URL)</option>
+            <option value="wikilink" selected>Obsidian Wikilink [[Target|Text]]</option>
+            <option value="comment">Commented-out Link Text%%[Link](URL)%%</option>
+            <option value="plain">Plain Text (Strip Links)</option>
+          </select>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-container">
+            <input type="checkbox" id="omit-references">
+            <span class="checkmark"></span>
+            Omit References and Bibliography
+          </label>
+        </div>
+      </aside>
+
+      <!-- Right Column: Workspace -->
+      <main class="workspace-panel glass">
+        <!-- Initial State / Empty State -->
+        <div id="state-initial" class="workspace-state active">
+          <div class="empty-state-content">
+            <div class="large-icon">✦</div>
+            <h2>Ready to Convert</h2>
+            <p>Paste a Wikipedia article link in the sidebar and click <strong>Analyze</strong> to load the article structure, images, and smart suggestions.</p>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="state-loading" class="workspace-state">
+          <div class="loading-content">
+            <div class="spinner">
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <h2 id="loading-title">Scraping Article Data...</h2>
+            <p id="loading-desc">Fetching HTML and invoking Gemini to parse image descriptions and identify movie templates.</p>
+          </div>
+        </div>
+
+        <!-- Ready State / Results -->
+        <div id="state-ready" class="workspace-state">
+          <!-- Movie Banner (Hidden by default, shown if movie detected) -->
+          <div id="movie-banner" class="movie-banner glass hidden">
+            <div class="movie-icon">🎬</div>
+            <div class="movie-details">
+              <h3>Movie Article Detected</h3>
+              <div class="movie-fields">
+                <div class="field-item">
+                  <label for="movie-title">Title</label>
+                  <input type="text" id="movie-title">
+                </div>
+                <div class="field-item">
+                  <label for="movie-year">Release Year</label>
+                  <input type="text" id="movie-year" placeholder="YYYY">
+                </div>
+              </div>
+              <p class="movie-desc" id="movie-desc"></p>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="tabs-container">
+            <button class="tab-button active" data-tab="tab-sections">Sections Checklist</button>
+            <button class="tab-button" data-tab="tab-images">Images (<span id="image-count">0</span>)</button>
+            <button class="tab-button" data-tab="tab-preview" id="btn-tab-preview">Markdown Preview</button>
+          </div>
+
+          <!-- Tab Contents -->
+          <div class="tab-contents">
+            <!-- Sections Checklist Tab -->
+            <div id="tab-sections" class="tab-pane active">
+              <div class="pane-header">
+                <h3>Select Content Sections</h3>
+                <p>Uncheck the sections you do not want in your final note.</p>
+                <div class="selection-actions">
+                  <button id="btn-select-all" class="text-button">Select All</button>
+                  <button id="btn-select-none" class="text-button">Deselect All</button>
+                </div>
+              </div>
+              <div class="sections-list" id="sections-checklist-container">
+                <!-- Dynamically loaded checkboxes -->
+              </div>
+            </div>
+
+            <!-- Images Tab -->
+            <div id="tab-images" class="tab-pane">
+              <div class="pane-header">
+                <h3>Image Attachments</h3>
+                <p>Customize filenames or exclude layout assets. Thumbnail original resolutions are resolved automatically.</p>
+              </div>
+              <div class="images-grid" id="images-container">
+                <!-- Dynamically loaded image cards -->
+              </div>
+            </div>
+
+            <!-- Markdown Preview Tab -->
+            <div id="tab-preview" class="tab-pane">
+              <div class="pane-header">
+                <h3>Final Note Preview</h3>
+                <button id="btn-copy-preview" class="text-button icon-button">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copy Raw Markdown
+                </button>
+              </div>
+              <div class="preview-box">
+                <textarea id="markdown-preview-textarea" readonly></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exporter Actions -->
+          <footer class="export-actions-bar">
+            <div class="status-summary" id="export-status-summary">
+              Ready to generate note: <span id="summary-section-count">0</span> sections, <span id="summary-image-count">0</span> images selected.
+            </div>
+            <button id="btn-export" class="export-button glow-button">
+              <span class="btn-text">Export to Obsidian</span>
+              <span class="spinner-small hidden"></span>
+            </button>
+          </footer>
+        </div>
+      </main>
+    </div>
+
+    <!-- Logger Terminal Console -->
+    <section class="console-panel glass">
+      <div class="console-header">
+        <h4>System Logs</h4>
+        <button id="btn-clear-console" class="text-button">Clear</button>
+      </div>
+      <div class="console-logs" id="console-logs-container">
+        <div class="log-line system">✦ System initialized. Ready to fetch Wikipedia articles.</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
