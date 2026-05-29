@@ -6,7 +6,7 @@ This plugin allows you to import Wikipedia articles directly from within Obsidia
 
 To make your experience as frictionless as possible, the Obsidian plugin can **automatically manage the local Node.js scraper server process** for you:
 1. Ensure you have your `GEMINI_API_KEY` defined in the `.env` file of the server repository.
-2. In the plugin settings within Obsidian, specify your absolute **Repository Root Path** (e.g. `c:\Users\djwri\Documents\GitHub\wikipedia_to_markdown`).
+2. In the plugin settings within Obsidian, specify your absolute **Repository Root Path** (e.g. `c:\Users\djwri\Documents\GitHub\Wikipedia-To-Obsidian-Markdown`).
 3. Turn on **Manage Server Automatically**.
 4. **That's it!** Opening the Wikipedia Importer modal inside Obsidian will automatically spin up the scraping server in the background. When you close the modal (or complete your import), the server is cleanly shut down, freeing up port 3000 and leaving no stray background processes on your system.
 
@@ -40,7 +40,7 @@ Since this is a custom local companion plugin, you can install it manually in yo
 ## Plugin Settings
 
 Go to Obsidian **Settings** -> **Wikipedia Importer** to configure:
-- **Repository Root Path**: The absolute path to your local `wikipedia_to_markdown` folder (e.g., `c:\Users\djwri\Documents\GitHub\wikipedia_to_markdown`).
+- **Repository Root Path**: The absolute path to your local `Wikipedia-To-Obsidian-Markdown` folder (e.g., `c:\Users\djwri\Documents\GitHub\Wikipedia-To-Obsidian-Markdown`).
 - **Manage Server Automatically**: When enabled, the plugin automatically spawns and kills the local scraping server process.
 - **Server Status & Manual Control**: Monitor your scraper server status or trigger starts/stops manually.
 - **Local Server URL** (default: `http://localhost:3000`)

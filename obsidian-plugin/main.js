@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS = {
   linkMode: 'wikilink',
   omitReferences: false,
   autoManageServer: true,
-  repoPath: 'c:\\Users\\djwri\\Documents\\GitHub\\wikipedia_to_markdown'
+  repoPath: 'c:\\Users\\djwri\\Documents\\GitHub\\Wikipedia-To-Obsidian-Markdown'
 };
 
 // Helper function to resolve vault path conflicts safely (overwrite safeguard)
@@ -79,10 +79,29 @@ class WikiImporterPlugin extends Plugin {
       return;
     }
 
+    const fs = require('fs');
+    const path = require('path');
     const { spawn } = require('child_process');
     const repoPath = this.settings.repoPath;
     if (!repoPath) {
       new Notice('Automatic Server Start: Please set your Repository Path in settings.');
+      return;
+    }
+
+    // Check if repository path exists
+    if (!fs.existsSync(repoPath)) {
+      console.error(`[Plugin] Repository path does not exist: ${repoPath}`);
+      new Notice(`Failed to start server: Repository path does not exist: "${repoPath}"`);
+      this.serverStatus = 'stopped';
+      return;
+    }
+
+    // Check if server.js exists in the repository path
+    const serverJsPath = path.join(repoPath, 'server.js');
+    if (!fs.existsSync(serverJsPath)) {
+      console.error(`[Plugin] server.js not found in directory: ${repoPath}`);
+      new Notice(`Failed to start server: "server.js" not found in "${repoPath}"`);
+      this.serverStatus = 'stopped';
       return;
     }
 
@@ -96,10 +115,17 @@ class WikiImporterPlugin extends Plugin {
         env: process.env
       });
 
+      this.serverProcess.on('error', (err) => {
+        console.error('[Plugin] Failed to start server process:', err);
+        new Notice(`Failed to start server: ${err.message}`);
+        this.serverProcess = null;
+        this.serverStatus = 'stopped';
+      });
+
       this.serverProcess.stdout.on('data', (data) => {
         const text = data.toString();
         console.log(`[Server STDOUT] ${text}`);
-        if (text.includes('Server Running')) {
+        if (text.toLowerCase().includes('server running')) {
           this.serverStatus = 'running';
           new Notice('Wikipedia scraping server is ready!');
         }
@@ -631,9 +657,9 @@ class WikiImporterSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Repository Root Path')
-      .setDesc('Absolute directory path to your wikipedia_to_markdown root folder (needed to manage process)')
+      .setDesc('Absolute directory path to your Wikipedia-To-Obsidian-Markdown root folder (needed to manage process)')
       .addText(text => text
-        .setPlaceholder('c:\\Users\\djwri\\Documents\\GitHub\\wikipedia_to_markdown')
+        .setPlaceholder('c:\\Users\\djwri\\Documents\\GitHub\\Wikipedia-To-Obsidian-Markdown')
         .setValue(this.plugin.settings.repoPath)
         .onChange(async (value) => {
           this.plugin.settings.repoPath = value.trim();
