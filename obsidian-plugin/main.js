@@ -394,14 +394,43 @@ class WikiImportModal extends Modal {
 
       this.articleData.images.forEach((img, idx) => {
         const item = imgList.createDiv();
-        item.style.display = 'flex';
-        item.style.flexDirection = 'column';
-        item.style.gap = '6px';
         item.style.background = 'var(--background-secondary)';
         item.style.padding = '10px';
         item.style.borderRadius = '6px';
 
-        const header = item.createDiv();
+        const row = item.createDiv();
+        row.style.display = 'flex';
+        row.style.gap = '12px';
+        row.style.alignItems = 'flex-start';
+
+        // Left: Thumbnail preview
+        const thumbDiv = row.createDiv();
+        thumbDiv.style.flexShrink = '0';
+        thumbDiv.style.width = '60px';
+        thumbDiv.style.height = '60px';
+        thumbDiv.style.borderRadius = '4px';
+        thumbDiv.style.overflow = 'hidden';
+        thumbDiv.style.background = 'var(--background-primary)';
+        thumbDiv.style.display = 'flex';
+        thumbDiv.style.alignItems = 'center';
+        thumbDiv.style.justifyContent = 'center';
+        thumbDiv.style.border = '1px solid var(--border-color)';
+        
+        const previewImg = thumbDiv.createEl('img');
+        previewImg.src = img.originalUrl;
+        previewImg.style.maxWidth = '100%';
+        previewImg.style.maxHeight = '100%';
+        previewImg.style.objectFit = 'contain';
+
+        // Right: Checkbox, Name, Input, Caption
+        const rightDiv = row.createDiv();
+        rightDiv.style.flexGrow = '1';
+        rightDiv.style.display = 'flex';
+        rightDiv.style.flexDirection = 'column';
+        rightDiv.style.gap = '6px';
+        rightDiv.style.width = '100%';
+
+        const header = rightDiv.createDiv();
         header.style.display = 'flex';
         header.style.justifyContent = 'space-between';
         header.style.alignItems = 'center';
@@ -417,17 +446,20 @@ class WikiImportModal extends Modal {
         left.createEl('span', { text: `Image #${idx + 1}` }).style.fontWeight = 'bold';
 
         if (img.isPoster) {
-          header.createEl('span', { text: 'Poster' }).style.background = 'var(--text-success)';
-          header.style.color = '#ffffff';
-          header.style.fontSize = '10px';
+          const posterLabel = header.createEl('span', { text: 'Poster' });
+          posterLabel.style.background = 'var(--text-success)';
+          posterLabel.style.color = '#ffffff';
+          posterLabel.style.fontSize = '10px';
+          posterLabel.style.padding = '2px 6px';
+          posterLabel.style.borderRadius = '4px';
         }
 
-        const input = item.createEl('input', { type: 'text', value: img.suggestedName });
+        const input = rightDiv.createEl('input', { type: 'text', value: img.suggestedName });
         input.className = 'wiki-image-name-input';
         input.setAttribute('data-idx', idx);
         input.style.width = '100%';
 
-        item.createEl('p', { text: img.caption || 'No caption' }).style.fontSize = '11px';
+        rightDiv.createEl('p', { text: img.caption || 'No caption' }).style.fontSize = '11px';
       });
     }
 
