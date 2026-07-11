@@ -286,7 +286,7 @@ export class WikiImportModal extends Modal {
 					let imgResponse;
 					try {
 						imgResponse = await requestUrl({ url: getHighResUrl(img.originalUrl), method: "GET", throw: true });
-					} catch (e) {
+					} catch {
 						imgResponse = await requestUrl({ url: img.originalUrl, method: "GET", throw: true });
 					}
 

@@ -1,14 +1,13 @@
 // index.js
-require("dotenv").config();
+try { process.loadEnvFile(); } catch { /* no .env file */ }
 const fs = require("fs").promises;
 const path = require("path");
-const axios = require("axios");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const cheerio = require('cheerio');
 
 // --- Configuration ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 const outputBaseDir = path.join(__dirname, "output");
 
 /**
@@ -18,12 +17,13 @@ const outputBaseDir = path.join(__dirname, "output");
  */
 async function fetchHtml(url) {
   try {
-    const { data } = await axios.get(url, {
+    const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
       }
     });
-    return data;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.text();
   } catch (error) {
     console.error(`Error fetching URL ${url}:`, error.message);
     throw new Error(`Failed to fetch HTML from ${url}.`);
@@ -84,13 +84,13 @@ async function extractContentWithGemini(html) {
  */
 async function downloadFile(url, filePath) {
   try {
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
+    const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
       }
     });
-    await fs.writeFile(filePath, response.data);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    await fs.writeFile(filePath, Buffer.from(await response.arrayBuffer()));
     return filePath;
   } catch (error) {
     console.error(`Error downloading file from ${url}:`, error.message);

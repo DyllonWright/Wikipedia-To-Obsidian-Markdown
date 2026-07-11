@@ -32,7 +32,7 @@ const context = await esbuild.context({
 	// plugin can run on mobile as well as desktop.
 	platform: "browser",
 	format: "cjs",
-	target: "es2018",
+	target: "es2019",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,

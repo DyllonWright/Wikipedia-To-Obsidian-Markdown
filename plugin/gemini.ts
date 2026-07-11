@@ -2,6 +2,14 @@ import { requestUrl } from "obsidian";
 import { generateFallbackAnalysis } from "../src/fallback";
 import type { GeminiAnalysis, ParsedImage } from "./types";
 
+interface GeminiRestResponse {
+	candidates?: Array<{
+		content?: {
+			parts?: Array<{ text?: string }>;
+		};
+	}>;
+}
+
 const GEMINI_ENDPOINT =
 	"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
@@ -88,8 +96,8 @@ export async function analyzeMetadataAndImages(
 			throw: true
 		});
 
-		const text: string | undefined =
-			response.json?.candidates?.[0]?.content?.parts?.[0]?.text;
+		const body = response.json as GeminiRestResponse;
+		const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
 		if (!text) throw new Error("Empty Gemini response");
 		return JSON.parse(text) as GeminiAnalysis;
 	} catch (error) {

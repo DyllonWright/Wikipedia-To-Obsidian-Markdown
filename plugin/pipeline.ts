@@ -1,13 +1,7 @@
 import { requestUrl } from "obsidian";
 import { parseWikipediaArticle } from "../src/parser";
 import { analyzeMetadataAndImages } from "./gemini";
-import type { AnalyzedArticle, RawSection } from "./types";
-
-interface SectionElement {
-	type: string;
-	content: unknown;
-	isInfobox?: boolean;
-}
+import type { AnalyzedArticle } from "./types";
 
 /** Today, formatted for image-name prefixes: "YYYY MM DD". */
 export function vaultDateToday(): string {
@@ -24,7 +18,7 @@ export async function analyzeArticle(
 	options: { geminiApiKey: string; imageNameDatePrefix: boolean }
 ): Promise<AnalyzedArticle> {
 	const response = await requestUrl({ url, method: "GET", throw: true });
-	const html = response.text;
+	const html: string = response.text;
 
 	const parsedData = parseWikipediaArticle(html, url, {
 		linkMode: "standard",
@@ -34,14 +28,13 @@ export async function analyzeArticle(
 	// Lead-section text and infobox summary feed the metadata analysis.
 	let leadText = "";
 	let infoboxText = "";
-	const introSection = parsedData.sections.find((s: RawSection) => s.id === "section-intro");
+	const introSection = parsedData.sections.find((s) => s.id === "section-intro");
 	if (introSection) {
-		const elements = introSection.elements as SectionElement[];
-		leadText = elements
+		leadText = introSection.elements
 			.filter((el) => el.type === "p")
 			.map((el) => String(el.content))
 			.join(" ");
-		const infoboxEl = elements.find((el) => el.type === "table" && el.isInfobox);
+		const infoboxEl = introSection.elements.find((el) => el.type === "table" && el.isInfobox);
 		if (infoboxEl) infoboxText = String(infoboxEl.content);
 	}
 
@@ -63,7 +56,7 @@ export async function analyzeArticle(
 		movieTitle: analysis.movieTitle || parsedData.title,
 		releaseYear: analysis.releaseYear || "",
 		briefDescription: analysis.briefDescription || "",
-		sections: parsedData.sections.map((s: RawSection) => ({
+		sections: parsedData.sections.map((s) => ({
 			id: s.id,
 			title: s.title,
 			level: s.level,

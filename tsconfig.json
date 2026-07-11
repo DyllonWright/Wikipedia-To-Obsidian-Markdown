@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"baseUrl": ".",
-		"target": "ES2018",
+		"target": "ES2019",
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"esModuleInterop": true,
@@ -12,7 +12,7 @@
 		"skipLibCheck": true,
 		"noEmit": true,
 		"importHelpers": false,
-		"lib": ["DOM", "DOM.Iterable", "ES2018", "ES2020.String"]
+		"lib": ["DOM", "DOM.Iterable", "ES2019", "ES2020.String"]
 	},
-	"include": ["plugin/**/*.ts", "plugin/**/*.d.ts"]
+	"include": ["plugin/**/*.ts", "src/**/*.d.ts"]
 }

@@ -1,7 +1,6 @@
 // src/exporter.js
 const fs = require('fs').promises;
 const path = require('path');
-const axios = require('axios');
 
 /**
  * Resolves a Wikipedia thumbnail URL to its high-resolution original image URL.
@@ -44,15 +43,15 @@ async function downloadImage(url) {
   let lastError = null;
   for (const targetUrl of urlsToTry) {
     try {
-      const response = await axios.get(targetUrl, {
-        responseType: 'arraybuffer',
+      const response = await fetch(targetUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
         },
-        timeout: 15000 // 15s timeout
+        signal: AbortSignal.timeout(15000) // 15s timeout
       });
-      
-      const contentType = response.headers['content-type'] || '';
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentType = response.headers.get('content-type') || '';
       let ext = '.jpg'; // default fallback
       
       if (contentType.includes('image/png')) ext = '.png';
@@ -67,7 +66,7 @@ async function downloadImage(url) {
       }
       
       return {
-        buffer: Buffer.from(response.data),
+        buffer: Buffer.from(await response.arrayBuffer()),
         ext
       };
     } catch (error) {

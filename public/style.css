@@ -531,7 +531,7 @@ button {
 }
 
 .movie-banner.hidden {
-  display: none !important;
+  display: none;
 }
 
 .movie-icon {
@@ -959,8 +959,9 @@ button {
   animation: spinner-spin 0.8s linear infinite;
 }
 
-.hidden {
-  display: none !important;
+/* Doubled class outranks any single-selector display rule without !important */
+.hidden.hidden {
+  display: none;
 }
 
 /* Responsive */

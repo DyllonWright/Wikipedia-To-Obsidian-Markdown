@@ -1,7 +1,8 @@
 // src/gemini.js
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { generateFallbackAnalysis } = require('./fallback');
-require('dotenv').config();
+// Load .env without the dotenv package (process.loadEnvFile: Node 20.12+)
+try { process.loadEnvFile(); } catch { /* no .env file — Gemini falls back to heuristics */ }
 
 // Initialize Gemini API
 let genAI = null;

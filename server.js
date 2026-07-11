@@ -1,7 +1,6 @@
 // server.js
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
 const path = require('path');
 const { parseWikipediaArticle } = require('./src/parser');
 const { analyzeMetadataAndImages } = require('./src/gemini');
@@ -32,14 +31,17 @@ app.get('/api/analyze', async (req, res) => {
   try {
     console.log(`Analyzing Wikipedia URL: ${url}`);
     
-    // Fetch HTML
-    const response = await axios.get(url, {
+    // Fetch HTML (native fetch, Node 18+)
+    const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
       }
     });
-    
-    const html = response.data;
+    if (!response.ok) {
+      throw new Error(`Wikipedia returned HTTP ${response.status}`);
+    }
+
+    const html = await response.text();
     
     // Parse article HTML structure programmatically
     const parsedData = parseWikipediaArticle(html, url, {

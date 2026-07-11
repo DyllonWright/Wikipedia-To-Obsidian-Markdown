@@ -1,10 +1,15 @@
-/* Shared shapes flowing between the pipeline, the modal, and the shared
- * CommonJS modules in src/. */
+/* Shapes flowing between the pipeline, the modal, and the shared
+ * CommonJS modules in src/. The shared shapes live in src/types.d.ts. */
 
-export interface ParsedImage {
-	originalUrl: string;
-	caption: string;
-}
+export type {
+	GeminiAnalysis,
+	ImageSuggestion,
+	ParsedImage,
+	RawSection,
+	SectionElement
+} from "../src/types";
+
+import type { ParsedImage, RawSection } from "../src/types";
 
 export interface AnalyzedImage extends ParsedImage {
 	suggestedName: string;
@@ -16,27 +21,6 @@ export interface SectionSummary {
 	title: string;
 	level: number;
 	elementCount: number;
-}
-
-/** Opaque section payload produced by src/parser.js and consumed verbatim
- *  by src/markdown.js — the plugin passes it through without touching it. */
-export interface RawSection {
-	id: string;
-	title: string;
-	level: number;
-	elements: unknown[];
-}
-
-export interface GeminiAnalysis {
-	isMovie: boolean;
-	movieTitle: string;
-	releaseYear: string;
-	briefDescription: string;
-	imageSuggestions: Array<{
-		originalUrl: string;
-		suggestedName: string;
-		isPoster: boolean;
-	}>;
 }
 
 export interface AnalyzedArticle {
