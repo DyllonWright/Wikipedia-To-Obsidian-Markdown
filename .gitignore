@@ -6,3 +6,8 @@
 
 # Local export output (temp/test files)
 /output
+
+# Generated plugin bundle (built by esbuild from plugin/ + src/)
+/main.js
+*.map
+.DS_Store

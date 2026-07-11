@@ -1,0 +1,172 @@
+/* Wikipedia Importer — modal styling. Theme-aware: every color derives
+   from Obsidian CSS variables so light and dark themes both work. */
+
+.wiki-imp-container p {
+	color: var(--text-muted);
+}
+
+.wiki-imp-url-input {
+	width: 100%;
+}
+
+.wiki-imp-buttons {
+	margin-top: 16px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+.wiki-imp-loading .wiki-imp-dim {
+	font-size: var(--font-smaller);
+	color: var(--text-muted);
+}
+
+.wiki-imp-error {
+	color: var(--text-error);
+	margin-top: 12px;
+}
+
+.wiki-imp-configure {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+	max-height: 480px;
+	overflow-y: auto;
+	padding-right: 10px;
+}
+
+/* Film details banner */
+.wiki-imp-movie-banner {
+	background-color: hsla(var(--color-purple-hsl, 258, 88%, 66%), 0.08);
+	border: 1px solid hsla(var(--color-purple-hsl, 258, 88%, 66%), 0.25);
+	border-radius: 8px;
+	padding: 14px 16px;
+}
+
+.wiki-imp-movie-banner h3 {
+	color: var(--color-purple, var(--text-accent));
+	font-weight: 600;
+	margin: 0 0 12px 0;
+}
+
+.wiki-imp-movie-fields {
+	display: flex;
+	gap: 15px;
+}
+
+.wiki-imp-field {
+	display: flex;
+	flex-direction: column;
+}
+
+.wiki-imp-field label {
+	font-size: var(--font-smallest);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--text-muted);
+	margin-bottom: 4px;
+}
+
+/* Sections checklist */
+.wiki-imp-section-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	background: var(--background-secondary);
+	padding: 10px;
+	border-radius: 6px;
+}
+
+.wiki-imp-section-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: var(--wiki-imp-indent, 0);
+}
+
+.wiki-imp-level-tag {
+	font-size: var(--font-smallest);
+	color: var(--text-muted);
+}
+
+.wiki-imp-section-title {
+	font-weight: 500;
+}
+
+/* Image renamer cards */
+.wiki-imp-image-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.wiki-imp-image-item {
+	background: var(--background-secondary);
+	padding: 10px;
+	border-radius: 6px;
+}
+
+.wiki-imp-image-row {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.wiki-imp-thumb {
+	flex-shrink: 0;
+	width: 60px;
+	height: 60px;
+	border-radius: 4px;
+	overflow: hidden;
+	background: var(--background-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.wiki-imp-thumb img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+.wiki-imp-image-details {
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 100%;
+}
+
+.wiki-imp-image-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.wiki-imp-image-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+}
+
+.wiki-imp-poster-tag {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: var(--font-smallest);
+	padding: 2px 6px;
+	border-radius: 4px;
+}
+
+.wiki-imp-image-name-input {
+	width: 100%;
+}
+
+.wiki-imp-caption {
+	font-size: var(--font-smaller);
+	color: var(--text-muted);
+	margin: 0;
+}

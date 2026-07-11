@@ -1,104 +1,91 @@
-# Wikipedia ✦ Obsidian Importer
+# Wikipedia Importer
 
-A modern, highly-polished tool designed to clean, structure, and import Wikipedia articles directly into your **Obsidian Vault** with zero friction. It converts headings, lists, and tables into perfect Markdown, downloads high-resolution page attachments, and supports automated image naming rules.
+> *"Whatever you say a thing is, it is not."* — Alfred Korzybski
 
-This project consists of three main components:
-1. **Programmatic Scraper & Parser**: A robust backend that strips unnecessary Wikipedia layouts, resolves thumbnail images to high-resolution originals, and flattens complex tables into clean GFM Markdown tables.
-2. **Interactive Web GUI Dashboard**: A premium, glassmorphic dark-mode web application to paste URLs, customize section selections, rename files with dynamic suggestions, and preview live Markdown.
-3. **Companion Obsidian Plugin**: A native Obsidian plugin that interacts with the local server to run the import panel directly inside your vault.
+An [Obsidian](https://obsidian.md) plugin that imports Wikipedia articles as clean, structured notes — sections you choose, images downloaded and renamed to your convention, tables flattened without breaking, references preserved as real footnotes. Fully self-contained: no server, no account, nothing to install beyond the plugin itself.
 
----
+## Why this exists
 
-## ✦ Key Features
+A Wikipedia article never equals its subject — Korzybski would insist on that — but it makes a remarkably durable *pointer* to one. This plugin began as a film diary. Its author watches movies and studies them afterward, and every film ever released carries a Wikipedia entry: cast, production, reception, the poster. Importing that entry into the vault right after the credits roll creates a permanent record of what you watched and a place to hang your own thoughts — so the film doesn't dissolve into "something I saw once" but stays findable, linkable, and annotated in your own words next to the world's.
 
-- **Smart Gemini Integration**:
-  - Automatically identifies if the page is about a **movie/film**.
-  - Extracts the official title and release year.
-  - Suggests descriptive, clean image filenames (omitting icons/layout assets) based on a prefix date and the image's caption.
-- **Custom Image Naming Conventions**:
-  - Automatically formats standard images as: `YYYY MM DD Brief Description.ext`
-  - Formats movie covers as: `YYYY MM DD Movie Title (YYYY) Theatrical Release Poster.ext`
-- **Obsidian Vault Integration**:
-  - Save directly to your vault root or subfolders.
-  - Places attachments into your default Obsidian attachments folder (e.g. `Attachments/`), instantly resolving all in-context links.
-- **Section Selection Checklist**:
-  - Preview the structure of the article and toggle individual headings on or off before exporting.
-  - Automatically excludes index lists, external links, and stub sections by default.
-- **Robust Link Processing**:
-  - Select between standard Markdown links `[Text](URL)`, native Obsidian Wikilinks `[[Target|Text]]`, commented-out links using Obsidian's hidden comment markers `Text%%[Link](URL)%%`, or pure plain text.
-- **Table Flattener**:
-  - Programmatically resolves HTML tables containing cells with `colspan` and `rowspan` parameters, ensuring table structures do not break when rendered in Markdown.
+Film articles therefore get first-class treatment: the importer detects them, extracts the title and release year, names the note `Title (Year)`, and labels the theatrical release poster according to a tidy convention. But the machinery underneath — section parsing, image handling, table flattening, footnotes — works on **any** Wikipedia article: philosophers, battles, algorithms, birds. The film path just arrives pre-sharpened.
 
----
+## How it works
 
-## ✦ Quick Start
+Everything happens inside the plugin — fetch, parse, and assembly all run in-process:
 
-### 1. Installation
+```mermaid
+flowchart TD
+    U(["Paste a Wikipedia URL"]) --> F["Fetch the article HTML<br/>(no CORS, no server)"]
+    F --> P["Parse: sections · images ·<br/>tables · references<br/>(handles current Parsoid and legacy HTML)"]
+    P --> D{"Film detection +<br/>image naming"}
+    D -->|Gemini API key set| G["gemini-flash-latest names images<br/>from captions, extracts title/year"]
+    D -->|no key| H["Built-in heuristics<br/>do the same job offline"]
+    G --> C["Checklist: pick sections,<br/>toggle images, edit names"]
+    H --> C
+    C --> I["Download originals in<br/>full resolution → attachments folder"]
+    I --> M["Assemble markdown:<br/>compact headings · flattened tables ·<br/>footnotes · your link style"]
+    M --> N(["Note lands in your vault<br/>and opens — never overwriting<br/>anything that exists"])
+```
 
-Clone this repository and install the dependencies:
+Some details worth knowing:
+
+- **Tables survive.** Wikipedia tables full of `colspan` and `rowspan` flatten into a stable grid — spanned values repeat so every row reads complete, and wikilink pipes get escaped so nothing breaks the column layout.
+- **References become footnotes.** Citation markers in the text (`[^smith-3]`) match their definitions at the bottom, using Wikipedia's own citation ids. Or switch them off entirely.
+- **Images arrive full-size.** Thumbnails resolve to the original upload; layout icons and UI cruft get filtered out. Every filename remains editable before import.
+- **Four link styles.** Wikilinks `[[Target|Text]]` (they resolve the moment you import the linked article too), standard markdown, comment-hidden `Text%%[Link](URL)%%`, or plain text.
+
+## Setup
+
+```mermaid
+flowchart LR
+    A["1 · Install and<br/>enable the plugin"] --> B["2 · Settings: folders,<br/>link style, date prefix —<br/>Gemini key optional"]
+    B --> C["3 · Ribbon icon or<br/>command: Import article"]
+    C --> D(["4 · Paste URL →<br/>checklist → note"])
+```
+
+1. **Install** (see below) and enable the plugin.
+2. **Settings** (all optional — the defaults work):
+   - **Note folder** and **attachments folder** — where notes and images land.
+   - **Link mode** — how article links render (wikilink by default).
+   - **Omit references** — for shorter notes.
+   - **Date-prefixed image names** — filenames like `2026 07 11 The Gambler (2014) Theatrical Release Poster`, so attachments sort chronologically. Toggle off for caption-only names.
+   - **Gemini API key** — optional. With one, `gemini-flash-latest` reads the captions and writes better image names; without one, built-in heuristics handle film detection and naming completely offline.
+3. **Import**: click the book ribbon icon or run **Import article** from the command palette, paste a URL, press *Analyze page*.
+4. **Choose**: tick sections, tick images, edit any filename, adjust the film title/year if the article covers one. Press *Import article*. The note opens when done.
+
+## Privacy and network use
+
+The plugin talks to exactly two places: `wikipedia.org` (article HTML) and `upload.wikimedia.org` (images you selected). If — and only if — you supply an API key, it also sends the article's title, lead section, infobox text, and image captions to Google's Gemini API for naming suggestions. No key, no call. Nothing else leaves your vault, and the plugin collects nothing.
+
+## The web dashboard (optional, separate)
+
+This repository also contains the importer's older sibling: a local web GUI (`npm start`, then `http://localhost:3000`) with live markdown preview, running on the **same** parser and markdown modules the plugin bundles (`src/`). The plugin needs none of it — but if you prefer importing from a browser outside Obsidian, the dashboard remains fully functional. One implementation, two doors.
+
+## Installing
+
+Until the plugin lands in the community catalog, install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) pointed at this repo, or copy `main.js`, `manifest.json`, and `styles.css` from a [release](https://github.com/DyllonWright/Wikipedia-To-Obsidian-Markdown/releases) into `<vault>/.obsidian/plugins/wikipedia-importer/`.
+
+Upgrading from the pre-2.0 build (the one that needed a local Node server)? Your `data.json` migrates automatically — formatting preferences carry over, and the server-related settings retire quietly. The server itself no longer needs to run for the plugin to work.
+
+## Developing
+
 ```bash
 npm install
+npm run dev     # esbuild watch mode (plugin bundle)
+npm run build   # typecheck + production bundle
+npm test        # parser / markdown / heuristics suite — keep it green
+npm start       # optional: the local web GUI
 ```
 
-### 2. Configure Environment
+The layout separates what runs where:
 
-Create a `.env` file in the root of the project (you can copy `.env.example` as a starting point) and add your Gemini API Key:
-```env
-GEMINI_API_KEY=YOUR_ACTUAL_GEMINI_API_KEY
-PORT=3000
-```
+- `src/` — shared CommonJS modules: `parser.js` (cheerio-based structure extraction), `markdown.js` (assembly, link modes, spacing), `fallback.js` (offline film detection and naming). The plugin bundles these; the server requires them. One source of truth, tested directly by `test/run.mjs` — including a fixture for Wikipedia's current Parsoid HTML *and* the legacy markup, since articles arrive in both shapes.
+- `plugin/` — the TypeScript plugin shell: modal UI, settings with migration, the Gemini REST client, and the import pipeline.
+- `server.js` + `public/` — the optional web dashboard.
 
-### 3. Run the Server
+One stylistic note: the README keeps to [E-Prime](https://en.wikipedia.org/wiki/E-Prime) — English without any form of "to be" — a small tribute to Korzybski, who taught that "the map is not the territory," and to Robert Anton Wilson, who kept the lesson funny. A tool that turns encyclopedia maps into personal ones might as well mind the difference.
 
-Start the local server in watch mode:
-```bash
-npm run dev
-```
-Once started, you will see a console printout:
-```
-==================================================
-Wikipedia to Obsidian Markdown Server Running!
-Access GUI: http://localhost:3000
-==================================================
-```
+## License
 
-Open your browser and navigate to `http://localhost:3000` to access the full-featured dashboard.
-
----
-
-## ✦ Companion Obsidian Plugin Setup
-
-To import Wikipedia pages without leaving Obsidian, you can install the custom companion plugin located in the `obsidian-plugin/` directory:
-
-1. Open your Obsidian vault folder in your file explorer.
-2. Locate or create the directory: `<vault-root>/.obsidian/plugins/` (note: `.obsidian` is a hidden directory).
-3. Create a subfolder named `wikipedia-obsidian-importer`.
-4. Copy the following files from this repository's `obsidian-plugin/` folder into that subfolder:
-   - `manifest.json`
-   - `main.js`
-5. Open Obsidian, navigate to **Settings** -> **Community Plugins**, click **Reload**, and enable **Wikipedia Obsidian Importer**.
-6. Make sure the local Node.js server (`npm run dev`) is running. Click the new ribbon icon or run the command `Import Wikipedia Page` to start importing notes natively inside Obsidian!
-
----
-
-## ✦ Project Architecture
-
-```
-.
-├── public/                 <-- Interactive Web GUI Dashboard
-│   ├── index.html          <-- UI layout structure
-│   ├── style.css           <-- Premium glassmorphic styling
-│   └── app.js              <-- Front-end controller & states
-├── src/                    <-- Backend logic modules
-│   ├── parser.js           <-- Programmatic cheerio scraping & element filtering
-│   ├── gemini.js           <-- Gemini metadata extraction & image naming suggestions
-│   └── exporter.js         <-- High-res image download & file export manager
-├── obsidian-plugin/        <-- Obsidian Plugin Companion
-│   ├── manifest.json       <-- Plugin configuration
-│   ├── main.js             <-- Native Obsidian modal, settings, and file writers
-│   └── README.md           <-- Plugin installation instructions
-├── output/                 <-- Fallback local output folder
-├── .env.example            <-- Environment template
-├── server.js               <-- Express server entrypoint
-└── package.json            <-- Dependency configuration
-```
+MIT

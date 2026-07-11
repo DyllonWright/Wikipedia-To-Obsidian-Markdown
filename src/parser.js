@@ -1,6 +1,5 @@
 // src/parser.js
 const cheerio = require('cheerio');
-const urlModule = require('url');
 
 /**
  * Cleans the Wikipedia HTML by removing unnecessary layout/script/edit elements.
@@ -47,7 +46,13 @@ function resolveUrl(href, baseUrl) {
     return 'https:' + href;
   }
   if (href.startsWith('/')) {
-    return urlModule.resolve(baseUrl, href);
+    // WHATWG URL instead of the Node 'url' module, so this file also
+    // bundles for the Obsidian plugin (browser/mobile targets).
+    try {
+      return new URL(href, baseUrl).toString();
+    } catch (e) {
+      return href;
+    }
   }
   return href;
 }
@@ -429,8 +434,23 @@ function parseWikipediaArticle(html, url, options = {}) {
     elements: []
   };
   
-  // Find all elements directly under the container
-  contentDiv.children().each((_, el) => {
+  // Parsoid read views (the HTML Wikipedia now serves) wrap the article in
+  // nested <section> elements; legacy output puts blocks directly under the
+  // container. Flatten section wrappers so the walker sees headings and
+  // body blocks in document order either way.
+  const flatNodes = [];
+  (function flatten(container) {
+    container.children().each((_, el) => {
+      if (el.name === 'section') {
+        flatten($(el));
+      } else {
+        flatNodes.push(el);
+      }
+    });
+  })(contentDiv);
+
+  // Walk all content blocks in document order
+  flatNodes.forEach((el) => {
     const $el = $(el);
     const tagName = el.name;
     
