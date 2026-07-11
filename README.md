@@ -1,14 +1,14 @@
 # Advanced Wikipedia Importer
 
-> *"Whatever you say a thing is, it is not."* — Alfred Korzybski
-
 An [Obsidian](https://obsidian.md) plugin that imports Wikipedia articles as clean, structured notes — sections you choose, images downloaded and renamed to your convention, tables flattened without breaking, references preserved as real footnotes. Fully self-contained: no server, no account, nothing to install beyond the plugin itself.
 
 ## Why this exists
 
-A Wikipedia article never equals its subject — Korzybski would insist on that — but it makes a remarkably durable *pointer* to one. This plugin began as a film diary. Its author watches movies and studies them afterward, and every film ever released carries a Wikipedia entry: cast, production, reception, the poster. Importing that entry into the vault right after the credits roll creates a permanent record of what you watched and a place to hang your own thoughts — so the film doesn't dissolve into "something I saw once" but stays findable, linkable, and annotated in your own words next to the world's.
+Reading about something and *remembering* it turn out to differ. You watch a film, fall down a Wikipedia rabbit hole, close the tab — and a month later the details have evaporated. The article held everything worth keeping, but it lived in a browser, not in your vault, so your notes never touched it.
 
-Film articles therefore get first-class treatment: the importer detects them, extracts the title and release year, names the note `Title (Year)`, and labels the theatrical release poster according to a tidy convention. But the machinery underneath — section parsing, image handling, table flattening, footnotes — works on **any** Wikipedia article: philosophers, battles, algorithms, birds. The film path just arrives pre-sharpened.
+This plugin removes that friction. One command turns the article into a real note: linkable, searchable, and ready for your own thoughts right alongside the source material. Wikilinks connect it to everything else you've captured, the images come along, the tables survive. The less work capture takes, the more you capture — and the more you capture, the more your vault behaves like an actual second brain instead of a pile of good intentions.
+
+The plugin began as a film diary. Its author studies the movies he watches, and every film carries a Wikipedia entry — cast, production, reception, the poster. Importing the entry right after the credits roll preserves what he watched and gives his own notes a permanent home. Film articles therefore get first-class treatment: the importer detects them, extracts the title and release year, names the note `Title (Year)`, and labels the theatrical release poster cleanly. But the machinery underneath — section parsing, image handling, table flattening, footnotes — works on **any** Wikipedia article: philosophers, battles, algorithms, birds. The film path just arrives pre-sharpened.
 
 ## How it works
 
