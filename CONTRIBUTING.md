@@ -1,4 +1,4 @@
-# Contributing to Wikipedia Importer
+# Contributing to Advanced Wikipedia Importer
 
 Thanks for the interest! Issues and pull requests welcome.
 
@@ -33,7 +33,7 @@ npm start       # optional web GUI at localhost:3000
 ```
 
 Test in a real vault: copy `main.js`, `manifest.json`, and `styles.css` into
-`<vault>/.obsidian/plugins/wikipedia-importer/` and reload Obsidian.
+`<vault>/.obsidian/plugins/advanced-wikipedia-importer/` and reload Obsidian.
 
 ## Reporting bugs
 

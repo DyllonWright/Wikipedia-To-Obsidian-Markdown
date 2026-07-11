@@ -93,7 +93,7 @@ export async function analyzeMetadataAndImages(
 		if (!text) throw new Error("Empty Gemini response");
 		return JSON.parse(text) as GeminiAnalysis;
 	} catch (error) {
-		console.warn("Wikipedia Importer: Gemini call failed, using heuristics.", error);
+		console.warn("Advanced Wikipedia Importer: Gemini call failed, using heuristics.", error);
 		return generateFallbackAnalysis(title, leadText, images, vaultDate);
 	}
 }

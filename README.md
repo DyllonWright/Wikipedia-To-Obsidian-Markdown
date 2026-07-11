@@ -1,4 +1,4 @@
-# Wikipedia Importer
+# Advanced Wikipedia Importer
 
 > *"Whatever you say a thing is, it is not."* — Alfred Korzybski
 
@@ -64,7 +64,7 @@ This repository also contains the importer's older sibling: a local web GUI (`np
 
 ## Installing
 
-Until the plugin lands in the community catalog, install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) pointed at this repo, or copy `main.js`, `manifest.json`, and `styles.css` from a [release](https://github.com/DyllonWright/Wikipedia-To-Obsidian-Markdown/releases) into `<vault>/.obsidian/plugins/wikipedia-importer/`.
+Until the plugin lands in the community catalog, install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) pointed at this repo, or copy `main.js`, `manifest.json`, and `styles.css` from a [release](https://github.com/DyllonWright/Wikipedia-To-Obsidian-Markdown/releases) into `<vault>/.obsidian/plugins/advanced-wikipedia-importer/`.
 
 Upgrading from the pre-2.0 build (the one that needed a local Node server)? Your `data.json` migrates automatically — formatting preferences carry over, and the server-related settings retire quietly. The server itself no longer needs to run for the plugin to work.
 

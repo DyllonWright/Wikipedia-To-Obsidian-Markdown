@@ -1,4 +1,4 @@
-# Wikipedia Importer — agent notes
+# Advanced Wikipedia Importer — agent notes
 
 Imports Wikipedia articles into Obsidian as clean markdown. **Read
 `README.md` first** for features + architecture.

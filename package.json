@@ -1,6 +1,6 @@
 {
   "name": "wikipedia-to-obsidian-markdown",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Import Wikipedia articles as clean Obsidian markdown: a self-contained Obsidian plugin, plus an optional local web GUI, sharing one parser.",
   "main": "main.js",
   "scripts": {
