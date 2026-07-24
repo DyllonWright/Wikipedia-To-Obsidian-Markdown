@@ -159,8 +159,8 @@ export class WikiImportModal extends Modal {
 			check.addClass("wiki-imp-section-checkbox");
 			check.setAttribute("data-id", sec.id);
 
-			row.createEl("span", { text: `H${sec.level}`, cls: "wiki-imp-level-tag" });
-			row.createEl("span", { text: sec.title, cls: "wiki-imp-section-title" });
+			row.createSpan({ text: `H${sec.level}`, cls: "wiki-imp-level-tag" });
+			row.createSpan({ text: sec.title, cls: "wiki-imp-section-title" });
 		});
 
 		// 3. Image renamer list
@@ -184,10 +184,10 @@ export class WikiImportModal extends Modal {
 				imgCheck.checked = true;
 				imgCheck.addClass("wiki-imp-image-checkbox");
 				imgCheck.setAttribute("data-idx", String(idx));
-				left.createEl("span", { text: `Image #${idx + 1}` });
+				left.createSpan({ text: `Image #${idx + 1}` });
 
 				if (img.isPoster) {
-					header.createEl("span", { text: "Poster", cls: "wiki-imp-poster-tag" });
+					header.createSpan({ text: "Poster", cls: "wiki-imp-poster-tag" });
 				}
 
 				const input = rightDiv.createEl("input", { type: "text", value: img.suggestedName });
