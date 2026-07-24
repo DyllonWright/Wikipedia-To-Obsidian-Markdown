@@ -1,5 +1,7 @@
 # Advanced Wikipedia Importer
 
+> *"When you cut into the present the future leaks out."* — William S. Burroughs
+
 An [Obsidian](https://obsidian.md) plugin that imports Wikipedia articles as clean, structured notes — sections you choose, images downloaded and renamed to your convention, tables flattened without breaking, references preserved as real footnotes. Fully self-contained: no server, no account, nothing to install beyond the plugin itself.
 
 ## Why this exists
@@ -10,11 +12,14 @@ This plugin removes that friction. One command turns the article into a real not
 
 The plugin began as a film diary. Its author studies the movies he watches, and every film carries a Wikipedia entry — cast, production, reception, the poster. Importing the entry right after the credits roll preserves what he watched and gives his own notes a permanent home. Film articles therefore get first-class treatment: the importer detects them, extracts the title and release year, names the note `Title (Year)`, and labels the theatrical release poster cleanly. But the machinery underneath — section parsing, image handling, table flattening, footnotes — works on **any** Wikipedia article: philosophers, battles, algorithms, birds. The film path just arrives pre-sharpened.
 
+Other importers exist; none of them treated a film article the way a film diary wants, ran start to finish inside Obsidian with the tables left standing, and still worked on a phone with no server anywhere. So this one does. You can have it for free.
+
 ## How it works
 
 Everything happens inside the plugin — fetch, parse, and assembly all run in-process:
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'basis'}}}%%
 flowchart TD
     U(["Paste a Wikipedia URL"]) --> F["Fetch the article HTML<br/>(no CORS, no server)"]
     F --> P["Parse: sections · images ·<br/>tables · references<br/>(handles current Parsoid and legacy HTML)"]
@@ -26,6 +31,25 @@ flowchart TD
     C --> I["Download originals in<br/>full resolution → attachments folder"]
     I --> M["Assemble markdown:<br/>compact headings · flattened tables ·<br/>footnotes · your link style"]
     M --> N(["Note lands in your vault<br/>and opens — never overwriting<br/>anything that exists"])
+
+    classDef terminal fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
+    classDef io fill:#dbeafe,stroke:#2563eb,color:#1e3a8a,stroke-width:1px;
+    classDef parse fill:#cffafe,stroke:#0891b2,color:#155e75,stroke-width:1px;
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1px;
+    classDef ai fill:#fce7f3,stroke:#db2777,color:#831843,stroke-width:1px;
+    classDef offline fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1px;
+    classDef assemble fill:#e0e7ff,stroke:#4f46e5,color:#312e81,stroke-width:1px;
+
+    class U,N terminal;
+    class F,I io;
+    class P parse;
+    class D decision;
+    class G ai;
+    class H offline;
+    class C,M assemble;
+
+    linkStyle 3,5 stroke:#db2777,stroke-width:2px;
+    linkStyle 4,6 stroke:#16a34a,stroke-width:2px,stroke-dasharray:5 5;
 ```
 
 Some details worth knowing:
@@ -38,10 +62,17 @@ Some details worth knowing:
 ## Setup
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'basis'}}}%%
 flowchart LR
     A["1 · Install and<br/>enable the plugin"] --> B["2 · Settings: folders,<br/>link style, date prefix —<br/>Gemini key optional"]
     B --> C["3 · Ribbon icon or<br/>command: Import article"]
     C --> D(["4 · Paste URL →<br/>checklist → note"])
+
+    classDef terminal fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
+    classDef step fill:#e0e7ff,stroke:#4f46e5,color:#312e81,stroke-width:1px;
+
+    class A,B,C step;
+    class D terminal;
 ```
 
 1. **Install** (see below) and enable the plugin.
@@ -53,6 +84,17 @@ flowchart LR
    - **Gemini API key** — optional. With one, `gemini-flash-latest` reads the captions and writes better image names; without one, built-in heuristics handle film detection and naming completely offline.
 3. **Import**: click the book ribbon icon or run **Import article** from the command palette, paste a URL, press *Analyze page*.
 4. **Choose**: tick sections, tick images, edit any filename, adjust the film title/year if the article covers one. Press *Import article*. The note opens when done.
+
+## Rules of the game
+
+Every tool encodes assumptions; these deserve stating plainly rather than discovering painfully.
+
+- **Nothing gets overwritten.** A finished note lands under a fresh name and opens; a note that already exists at that path stays untouched. Capture never costs you old work.
+- **Both HTML shapes parse.** Wikipedia serves articles as current Parsoid markup (nested `<section>` wrappers) *and*, on some pages, older flat markup. The parser reads either, and the test suite pins both against fixtures — so a redesign upstream doesn't silently break your imports.
+- **Film gets a sharpened path; everything else still cuts.** Film detection, `Title (Year)` naming, and poster labeling apply when the article warrants them, and step aside cleanly when it doesn't. Philosophers, battles, algorithms, and birds import on the same machinery.
+- **Offline by default, Gemini strictly optional.** Every Gemini-assisted feature — film detection, image naming — carries a built-in heuristic fallback. No API key means no network call to Google and no lost capability, just plainer image names.
+- **It runs on the phone.** The plugin bundles to a browser-platform build with no Node built-ins, so mobile Obsidian imports exactly as the desktop does.
+- **Dates follow your clock.** Image-name prefixes read the date from your device's own timezone, not UTC — a late-night import keeps tonight's date instead of rolling forward to tomorrow.
 
 ## Privacy and network use
 
@@ -89,3 +131,13 @@ One stylistic note: the README keeps to [E-Prime](https://en.wikipedia.org/wiki/
 ## License
 
 MIT
+
+---
+
+*A footnote for the ones who track these things.*
+
+*This release carries version 2.0.3, cut on July 23 — the day I found the bug it fixes. That bug rolled a date forward into a day it never lived, because a machine measured "today" against a line drawn through Greenwich instead of the one under my feet. Which day counts as today has never held still; that same arbitrariness runs my other plugin's eleven calendars at once, and it already gave July 23 a name — Maybe Day, as Robert Anton Wilson's readers keep it.*
+
+*Wilson spent decades logging the 23 enigma — coincidences clustering on that number — and traced the fixation to a story William S. Burroughs told him, the same Burroughs who opens this page. He read it as one thread in the synchronicity mesh* Cosmic Trigger *keeps circling: the Sirius transmissions, the Dog Star whose dawn rising opens the Dog Days on this very date, and the idea that language itself came from somewhere off-world — "a virus from outer space," in Burroughs' phrase.*
+
+*So weigh one evening's ledger. I caught the arbitrary-date bug on the 23rd while watching* Naked Lunch *— Cronenberg's film of the Burroughs novel, all talking typewriters and weaponized words, all insistence that the dates and the borders stay arbitrary. That same week I had written the Robert Anton Wilson Trust about the calendar plugin; the reply arrived mid-film, inside two hours of close of business, and signed off the way that circle signs off — keep the lasagna flying. Version, date, epigraph, film, letter: five knots, one mesh. Make of it what you will. Wilson would have said "maybe."*

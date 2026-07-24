@@ -67,8 +67,12 @@ app.get('/api/analyze', async (req, res) => {
       }
     }
     
-    // Format a vault date (default to today if not provided)
-    const activeDate = date || new Date().toISOString().split('T')[0].replace(/-/g, ' ');
+    // Format a vault date (default to today, in the server's local
+    // timezone, if not provided). Local components avoid the UTC roll-
+    // forward that toISOString() causes for late-evening imports west of UTC.
+    const now = new Date();
+    const localDate = `${now.getFullYear()} ${String(now.getMonth() + 1).padStart(2, '0')} ${String(now.getDate()).padStart(2, '0')}`;
+    const activeDate = date || localDate;
     
     // Query Gemini for movie details and image names
     console.log('Sending metadata to Gemini for analysis and name suggestions...');

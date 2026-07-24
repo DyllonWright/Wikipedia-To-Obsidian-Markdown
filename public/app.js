@@ -46,9 +46,11 @@ const btnClearConsole = document.getElementById('btn-clear-console');
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
-  // Set default date to today
+  // Set default date to today in the browser's local timezone. Local
+  // components avoid the UTC roll-forward that toISOString() causes for
+  // late-evening imports west of UTC.
   const today = new Date();
-  elImportDate.value = today.toISOString().split('T')[0];
+  elImportDate.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   // Load settings from localStorage
   loadSettings();

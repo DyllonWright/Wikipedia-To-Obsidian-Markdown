@@ -3,9 +3,18 @@ import { parseWikipediaArticle } from "../src/parser";
 import { analyzeMetadataAndImages } from "./gemini";
 import type { AnalyzedArticle } from "./types";
 
-/** Today, formatted for image-name prefixes: "YYYY MM DD". */
+/**
+ * Today in the computer's local timezone, formatted for image-name
+ * prefixes: "YYYY MM DD". Uses local calendar components rather than
+ * toISOString() (UTC), so a late-evening import west of UTC keeps the
+ * local date instead of rolling forward to tomorrow.
+ */
 export function vaultDateToday(): string {
-	return new Date().toISOString().split("T")[0].replace(/-/g, " ");
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = String(now.getMonth() + 1).padStart(2, "0");
+	const day = String(now.getDate()).padStart(2, "0");
+	return `${year} ${month} ${day}`;
 }
 
 /**
