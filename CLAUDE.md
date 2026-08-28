@@ -19,3 +19,17 @@ Imports Wikipedia articles into Obsidian as clean markdown. **Read
   `YYYY MM DD Title (YYYY) Theatrical Release Poster.ext`.
 - README/UI text keep E-Prime (no forms of "to be").
 - Standalone Python path: `wikipedia_to_markdown.py` (legacy).
+
+## Gemini API quirks (fleet-wide)
+
+Before debugging a `429`, `503`, `404`, or "the model got slow", read
+`mission-control/docs/API-QUIRKS.md`. It carries what has already gone wrong
+with this surface, indexed by symptom: quota meters **per project, not per key**
+(so a 13-key ring is not 13 budgets), the daily reset lands at **midnight
+Pacific**, `-latest` aliases **degrade before they fail** (29s for a two-token
+reply, which no error handler can see), and pinning a version rots
+(`gemini-2.5-flash` now answers 404).
+
+This repo keeps its own key handling and has **no model fallback or breaker** —
+`E-Reader-Screenshot-Transcriber/gui/lib/` holds the reference implementation if
+a run here ever needs one.
