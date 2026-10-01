@@ -24,11 +24,11 @@ flowchart TD
     U(["Paste a Wikipedia URL"]) --> F["Fetch the article HTML<br/>(no CORS, no server)"]
     F --> P["Parse: sections · images ·<br/>tables · references<br/>(handles current Parsoid and legacy HTML)"]
     P --> D{"Film detection +<br/>image naming"}
-    D -->|Gemini API key set| G["gemini-flash-latest names images<br/>from captions, extracts title/year"]
-    D -->|no key| H["Built-in heuristics<br/>do the same job offline"]
+    D -->|Gemini key ring set| G["gemini-flash-latest names images<br/>from captions, extracts title/year<br/>(rotates keys, steps models on failure)"]
+    D -->|no key, or all keys dry| H["Built-in heuristics<br/>do the same job offline"]
     G --> C["Checklist: pick sections,<br/>toggle images, edit names"]
     H --> C
-    C --> I["Download originals in<br/>full resolution → attachments folder"]
+    C --> I["Download the largest renderable<br/>version, verify the bytes,<br/>SVG → PNG/JPG → attachments folder"]
     I --> M["Assemble markdown:<br/>compact headings · flattened tables ·<br/>footnotes · your link style"]
     M --> N(["Note lands in your vault<br/>and opens — never overwriting<br/>anything that exists"])
 
@@ -54,10 +54,13 @@ flowchart TD
 
 Some details worth knowing:
 
-- **Tables survive.** Wikipedia tables full of `colspan` and `rowspan` flatten into a stable grid — spanned values repeat so every row reads complete, and wikilink pipes get escaped so nothing breaks the column layout.
-- **References become footnotes.** Citation markers in the text (`[^smith-3]`) match their definitions at the bottom, using Wikipedia's own citation ids. Or switch them off entirely.
-- **Images arrive full-size.** Thumbnails resolve to the original upload; layout icons and UI cruft get filtered out. Every filename remains editable before import.
-- **Four link styles.** Wikilinks `[[Target|Text]]` (they resolve the moment you import the linked article too), standard markdown, comment-hidden `Text%%[Link](URL)%%`, or plain text.
+- **Tables survive.** Wikipedia tables full of `colspan` and `rowspan` flatten into a stable grid — spanned values repeat so every row reads complete, and wikilink pipes get escaped so nothing breaks the column layout. Infoboxes get special care: the poster or lead image moves above the table as a real image with its caption, nested sub-boxes (like a "Transcriptions" block) unpack into rows of their own, and lists inside a cell keep their line breaks.
+- **References become footnotes.** Citation markers in the text (`[^smith-3]`) match their definitions under the article's own *Notes* / *Citations* headings, using Wikipedia's citation ids cleaned into labels Obsidian accepts. Or switch them off entirely: markers, lists, and the then-empty headings all go.
+- **Navigation chrome stays behind.** "Part of a series on…" sidebars, v·t·e navbars, hatnotes, cleanup banners, and links into `Category:`, `Help:`, `Template:`, or `File:` pages drop out; their readable text stays where it belongs.
+- **Only the article's own pictures.** By default the importer takes the infobox picture (poster, portrait, map) and the captioned figures in the body, and nothing else. Flags beside names, icons in tables, and link-box logos never come in. Galleries, which can hold dozens of loosely related thumbnails (Dharmachakra's runs to 56, mostly flags and emblems), stay out unless you turn on *Offer gallery images*, and even then they arrive unticked so you pick the few worth keeping.
+- **Images arrive full-size, and real.** Each image downloads as the original upload when Obsidian can show that format, otherwise as Wikimedia's own rendering at a width Wikimedia accepts. Every download gets checked by its bytes before it touches the vault, so an error page can never land disguised as a `.jpg`, and the file extension always matches the content. Layout icons get filtered out, and every filename stays editable before import.
+- **SVG converts for your phone.** Many phone galleries can't open SVG, so by default SVG art saves as a 1280-pixel PNG rendered by Wikimedia — or as JPG on a white background, or kept as SVG, your choice in settings.
+- **Four link styles.** Wikilinks `[[Target|Text]]` (they resolve the moment you import the linked article too), standard markdown, comment-hidden `Text%%[Link](URL)%%`, or plain text. Titles with parentheses, like `[[Terma (religion)|terma]]`, stay whole.
 
 ## Setup
 
@@ -80,10 +83,22 @@ flowchart LR
    - **Note folder** and **attachments folder** — where notes and images land.
    - **Link mode** — how article links render (wikilink by default).
    - **Omit references** — for shorter notes.
+   - **SVG images** — *Convert to PNG* (default), *Convert to JPG*, or *Keep as SVG*.
+   - **Offer gallery images** — off by default; when on, gallery thumbnails appear in the checklist unticked.
    - **Date-prefixed image names** — filenames like `2026 07 11 The Gambler (2014) Theatrical Release Poster`, so attachments sort chronologically. Toggle off for caption-only names.
-   - **Gemini API key** — optional. With one, `gemini-flash-latest` reads the captions and writes better image names; without one, built-in heuristics handle film detection and naming completely offline.
+   - **Gemini keys** — optional. With one, `gemini-flash-latest` reads the captions and writes better image names; without one, built-in heuristics handle film detection and naming completely offline. See [the key ring](#the-gemini-key-ring) below.
 3. **Import**: click the book ribbon icon or run **Import article** from the command palette, paste a URL, press *Analyze page*.
 4. **Choose**: tick sections, tick images, edit any filename, adjust the film title/year if the article covers one. Press *Import article*. The note opens when done.
+
+## The Gemini key ring
+
+The free Gemini tier allows a few dozen calls a day per Google project. One import spends one call, so a single key covers most days — but a ring of several keys keeps naming smart on heavy days.
+
+- **Keys live in Obsidian's keychain** (Settings → Keychain, Obsidian 1.11.4+), never in the plugin's `data.json`. A vault synced through Google Drive, iCloud, Git, or Obsidian Sync carries no key in plain text. Under *Gemini (optional)*, press *Add key*, then pick or create a keychain secret holding the key. One secret may also hold several keys, one per line or separated by spaces, and lines pasted from a `.env` ring (`# label` above `GEMINI_API_KEY=…`) work too.
+- **Rotation follows Google's own rules.** A key that answers `429` sits out until midnight Pacific, when Google resets the free-tier quota — and so does every other key labelled with the same account (`me@gmail.com`, `me@gmail.com #2`), because quota meters per project, not per key. A key Google refuses outright (revoked, invalid) sits out until you clear the marks. The next call starts on the last key that worked.
+- **The model never gets pinned.** Calls go to `gemini-flash-latest`. If that alias fails as a model (withdrawn, overloaded, timing out), the plugin asks Google once which stable flash models exist and tries the newest. Nothing hardcoded, so nothing rots.
+- **Bounded, then offline.** At most six attempts per import; after that, or with every key resting, the heuristics take over and the modal says why.
+- **Visible, never revealing.** The settings tab lists each key by label and an 8-character fingerprint with its status (*ready*, *dry until midnight Pacific*, *refused*). Key values never appear in the UI, the console, or a URL — the key travels in a request header.
 
 ## Rules of the game
 
@@ -98,17 +113,21 @@ Every tool encodes assumptions; these deserve stating plainly rather than discov
 
 ## Privacy and network use
 
-The plugin talks to exactly two places: `wikipedia.org` (article HTML) and `upload.wikimedia.org` (images you selected). If — and only if — you supply an API key, it also sends the article's title, lead section, infobox text, and image captions to Google's Gemini API for naming suggestions. No key, no call. Nothing else leaves your vault, and the plugin collects nothing.
+The plugin talks to exactly two places: `*.wikipedia.org` (article HTML — it refuses any other site) and `upload.wikimedia.org` (images you selected), identifying itself with a User-Agent that names this project, as Wikimedia's policy asks. If — and only if — you supply an API key, it also sends the article's title, lead section, infobox text, and image captions to Google's Gemini API (`generativelanguage.googleapis.com`) for naming suggestions. No key, no call. Nothing else leaves your vault, and the plugin collects nothing.
+
+Suggested image names — Gemini's or your own edits — pass through a filename sanitizer before they touch the vault, so no name can carry a path separator, a leading `..`, or the characters that break Obsidian links (`# ^ [ ] |`).
 
 ## The web dashboard (optional, separate)
 
-This repository also contains the importer's older sibling: a local web GUI (`npm start`, then `http://localhost:3000`) with live markdown preview, running on the **same** parser and markdown modules the plugin bundles (`src/`). The plugin needs none of it — but if you prefer importing from a browser outside Obsidian, the dashboard remains fully functional. One implementation, two doors.
+This repository also contains the importer's older sibling: a local web GUI (`npm start`, then `http://127.0.0.1:3000`) with live markdown preview, running on the **same** parser, markdown, image, and key-ring modules the plugin bundles (`src/`). The plugin needs none of it — but if you prefer importing from a browser outside Obsidian, the dashboard remains fully functional. One implementation, two doors.
+
+The dashboard reads Gemini keys from `.env` (copy `.env.example`): `GEMINI_API_KEY` for one key, `GEMINI_API_KEYS` for several, or `ENV_KEY_RING_PATH` pointing at a shared key-ring file, which it reads and never rewrites. It listens on the loopback address only and sends no CORS headers, so no other machine — and no web page you happen to visit — can drive its export endpoint into writing files.
 
 ## Installing
 
 Until the plugin lands in the community catalog, install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) pointed at this repo, or copy `main.js`, `manifest.json`, and `styles.css` from a [release](https://github.com/DyllonWright/Wikipedia-To-Obsidian-Markdown/releases) into `<vault>/.obsidian/plugins/advanced-wikipedia-importer/`.
 
-Upgrading from the pre-2.0 build (the one that needed a local Node server)? Your `data.json` migrates automatically — formatting preferences carry over, and the server-related settings retire quietly. The server itself no longer needs to run for the plugin to work.
+Upgrading from 2.3 or earlier? Your `data.json` migrates automatically on first load: formatting preferences carry over, a saved Gemini key moves into Obsidian's keychain as the secret `wikipedia-importer-gemini` and leaves `data.json`, and the pre-2.0 server settings retire quietly. (If that vault folder syncs somewhere with file history, older copies of `data.json` may still hold the key; rotate it in Google AI Studio if that matters to you.)
 
 ## Developing
 
@@ -122,8 +141,8 @@ npm start       # optional: the local web GUI
 
 The layout separates what runs where:
 
-- `src/` — shared CommonJS modules: `parser.js` (cheerio-based structure extraction), `markdown.js` (assembly, link modes, spacing), `fallback.js` (offline film detection and naming). The plugin bundles these; the server requires them. One source of truth, tested directly by `test/run.mjs` — including a fixture for Wikipedia's current Parsoid HTML *and* the legacy markup, since articles arrive in both shapes.
-- `plugin/` — the TypeScript plugin shell: modal UI, settings with migration, the Gemini REST client, and the import pipeline.
+- `src/` — shared CommonJS modules: `parser.js` (cheerio-based structure extraction), `markdown.js` (assembly, link modes, footnote ids, spacing), `images.js` (Wikimedia URL handling, download candidates, byte sniffing), `keyring.js` (key parsing, rotation, the Pacific-midnight latch), `gemini.js` (one prompt, one REST caller over any transport), and `fallback.js` (offline film detection, naming, filename sanitizing). The plugin bundles these; the server requires them, plus the Node-only `node-gemini.js`. One source of truth, tested directly by `test/run.mjs` — fixtures for Wikipedia's current Parsoid HTML *and* the legacy markup, and mock transports for every key-ring path, so the suite never touches the network.
+- `plugin/` — the TypeScript plugin shell: modal UI, settings with migration and keychain secrets, the `requestUrl` transport, the image downloader (with the canvas PNG→JPG step), and the import pipeline.
 - `server.js` + `public/` — the optional web dashboard.
 
 One stylistic note: the README keeps to [E-Prime](https://en.wikipedia.org/wiki/E-Prime) — English without any form of "to be" — a small tribute to Korzybski, who taught that "the map is not the territory," and to Robert Anton Wilson, who kept the lesson funny. A tool that turns encyclopedia maps into personal ones might as well mind the difference.
@@ -136,7 +155,7 @@ MIT
 
 *A footnote for the ones who track these things.*
 
-*This release carries version 2.3.0 — a 2 and a 3 with a nought pushed to the end — cut on July 23, the day I found the bug it fixes. That bug rolled a date forward into a day it never lived, because a machine measured "today" against a line drawn through Greenwich instead of the one under my feet. Which day counts as today has never held still; that same arbitrariness runs my other plugin's eleven calendars at once, and it already gave July 23 a name — Maybe Day, as Robert Anton Wilson's readers keep it.*
+*Release 2.3.0 — a 2 and a 3 with a nought pushed to the end — got cut on July 23, the day I found the bug it fixed. That bug rolled a date forward into a day it never lived, because a machine measured "today" against a line drawn through Greenwich instead of the one under my feet. Which day counts as today has never held still; that same arbitrariness runs my other plugin's eleven calendars at once, and it already gave July 23 a name — Maybe Day, as Robert Anton Wilson's readers keep it.*
 
 *Wilson spent decades logging the 23 enigma — coincidences clustering on that number — and traced the fixation to a story William S. Burroughs told him, the same Burroughs who opens this page. He read it as one thread in the synchronicity mesh* Cosmic Trigger *keeps circling: the Sirius transmissions, the Dog Star whose dawn rising opens the Dog Days on this very date, and the idea that language itself came from somewhere off-world — "a virus from outer space," in Burroughs' phrase.*
 

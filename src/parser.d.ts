@@ -10,7 +10,7 @@ export interface ParsedArticle {
 export function parseWikipediaArticle(
 	html: string,
 	url: string,
-	options?: { linkMode?: string; omitReferences?: boolean }
+	options?: { linkMode?: string; omitReferences?: boolean; includeGalleries?: boolean }
 ): ParsedArticle;
 
 export function convertTableToMarkdown(

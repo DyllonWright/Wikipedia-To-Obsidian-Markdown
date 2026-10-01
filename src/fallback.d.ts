@@ -6,3 +6,5 @@ export function generateFallbackAnalysis(
 	images: ParsedImage[],
 	vaultDate: string
 ): GeminiAnalysis;
+
+export function sanitizeFileName(name: string): string;

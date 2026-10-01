@@ -12,9 +12,20 @@ Imports Wikipedia articles into Obsidian as clean markdown. **Read
   markdown assembly, and heuristics against fixtures for BOTH Wikipedia
   HTML shapes (Parsoid `<section>` wrappers + legacy flat markup).
 - Gemini (optional, film detection + image naming): model name stays
-  `gemini-flash-latest`, never a pinned version. Plugin calls REST via
-  `requestUrl`; server uses the SDK with a key in `.env` (gitignored).
-  Every Gemini feature has an offline fallback in `src/fallback.js`.
+  `gemini-flash-latest`, never a pinned version; on a model failure
+  `src/gemini.js` discovers stable flash models via `models.list`. One
+  REST caller for both sides, transport injected (plugin: `requestUrl`;
+  server: `fetch` in `src/node-gemini.js`). Key goes in the
+  `x-goog-api-key` header, never a URL. Every Gemini feature has an
+  offline fallback in `src/fallback.js`.
+- Key ring (`src/keyring.js`): plugin keys live in Obsidian's
+  `app.secretStorage` (keychain), never `data.json`; settings hold only
+  secret names + fingerprint state. Server reads `GEMINI_API_KEY`,
+  `GEMINI_API_KEYS`, or `ENV_KEY_RING_PATH` (read only).
+- Images (`src/images.js`): Wikimedia accepts only standard thumbnail
+  widths and serves HTML redirects with status 200 — so every download
+  gets sniffed by its bytes, and the extension comes from the bytes. SVG
+  rasterizes via Wikimedia's PNG thumbs (setting `svgMode`, default png).
 - Image naming: `YYYY MM DD Brief Description.ext`; movie posters:
   `YYYY MM DD Title (YYYY) Theatrical Release Poster.ext`.
 - README/UI text keep E-Prime (no forms of "to be").

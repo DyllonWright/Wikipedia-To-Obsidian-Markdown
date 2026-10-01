@@ -1,6 +1,6 @@
 {
   "name": "wikipedia-to-obsidian-markdown",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Import Wikipedia articles as clean Obsidian markdown: a self-contained Obsidian plugin, plus an optional local web GUI, sharing one parser.",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,12 @@
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "test": "node test/run.mjs"
   },
-  "keywords": ["obsidian", "obsidian-plugin", "wikipedia", "markdown"],
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "wikipedia",
+    "markdown"
+  ],
   "author": "Dyllon Wright",
   "license": "MIT",
   "type": "commonjs",
@@ -20,7 +25,6 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cheerio": "^1.2.0",
-    "cors": "^2.8.5",
     "express": "^4.19.2",
     "turndown": "^7.2.2"
   },

@@ -13,7 +13,7 @@ export default class WikipediaImporterPlugin extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		this.addRibbonIcon("book-open", "Import Wikipedia article", () => {
+		this.addRibbonIcon("book-open", "Wikipedia import", () => {
 			new WikiImportModal(this.app, this).open();
 		});
 
@@ -30,7 +30,7 @@ export default class WikipediaImporterPlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		const raw = ((await this.loadData()) ?? {}) as Record<string, unknown>;
-		const { settings, migrated } = migrateSettings(raw);
+		const { settings, migrated } = migrateSettings(raw, this.app);
 		this.settings = settings;
 		if (migrated) await this.saveData(this.settings);
 	}

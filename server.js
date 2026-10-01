@@ -1,17 +1,21 @@
 // server.js
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const { parseWikipediaArticle } = require('./src/parser');
-const { analyzeMetadataAndImages } = require('./src/gemini');
+const { analyzeMetadataAndImages } = require('./src/node-gemini');
+const { WIKIMEDIA_USER_AGENT } = require('./src/images');
 const { exportArticle } = require('./src/exporter');
 const { assembleMarkdown } = require('./src/markdown');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Loopback only: the export endpoint writes files to disk, so nothing off
+// this machine should reach it.
+const HOST = '127.0.0.1';
 
-// Enable CORS so the Obsidian plugin can call our server
-app.use(cors());
+// No CORS: only this server's own page may call the API. (The plugin has
+// run in-process since 2.0.) Without CORS headers, a web page elsewhere
+// cannot drive /api/export into writing files.
 app.use(express.json({ limit: '50mb' }));
 
 // Serve the static frontend
@@ -27,15 +31,24 @@ app.get('/api/analyze', async (req, res) => {
   if (!url) {
     return res.status(400).json({ error: 'Wikipedia URL is required.' });
   }
+  let articleUrl;
+  try {
+    articleUrl = new URL(url);
+  } catch (e) {
+    return res.status(400).json({ error: 'That does not look like a URL.' });
+  }
+  if (!/^https?:$/.test(articleUrl.protocol) || !/(^|.)wikipedia.org$/i.test(articleUrl.hostname)) {
+    return res.status(400).json({ error: 'Only wikipedia.org articles can be imported.' });
+  }
+  articleUrl.protocol = 'https:';
+  articleUrl.hostname = articleUrl.hostname.replace(/.m.wikipedia.org$/i, '.wikipedia.org');
   
   try {
     console.log(`Analyzing Wikipedia URL: ${url}`);
     
     // Fetch HTML (native fetch, Node 18+)
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
-      }
+    const response = await fetch(articleUrl.toString(), {
+      headers: { 'User-Agent': WIKIMEDIA_USER_AGENT }
     });
     if (!response.ok) {
       throw new Error(`Wikipedia returned HTTP ${response.status}`);
@@ -44,7 +57,7 @@ app.get('/api/analyze', async (req, res) => {
     const html = await response.text();
     
     // Parse article HTML structure programmatically
-    const parsedData = parseWikipediaArticle(html, url, {
+    const parsedData = parseWikipediaArticle(html, articleUrl.toString(), {
       linkMode: 'standard',
       omitReferences: false
     });
@@ -104,6 +117,7 @@ app.get('/api/analyze', async (req, res) => {
         return {
           originalUrl: img.originalUrl,
           caption: img.caption,
+          fileWidth: img.fileWidth || 0,
           suggestedName: suggestion ? suggestion.suggestedName : `${activeDate} ${parsedData.title}`,
           isPoster: suggestion ? suggestion.isPoster : false
         };
@@ -180,9 +194,9 @@ app.post('/api/export', async (req, res) => {
 });
 
 // Start listening
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(`==================================================`);
   console.log(`Wikipedia to Obsidian Markdown Server Running!`);
-  console.log(`Access GUI: http://localhost:${PORT}`);
+  console.log(`Access GUI: http://${HOST}:${PORT}`);
   console.log(`==================================================`);
 });

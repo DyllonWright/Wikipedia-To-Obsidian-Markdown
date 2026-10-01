@@ -170,3 +170,16 @@
 	color: var(--text-muted);
 	margin: 0;
 }
+
+.wiki-imp-configure > .wiki-imp-dim {
+	font-size: var(--font-smaller);
+	color: var(--text-muted);
+	margin: 0;
+}
+
+.wiki-imp-ring-status {
+	margin: 6px 0 0;
+	padding-left: 1.2em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-smaller);
+}

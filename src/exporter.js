@@ -1,81 +1,52 @@
 // src/exporter.js
 const fs = require('fs').promises;
 const path = require('path');
+const { WIKIMEDIA_USER_AGENT, IMAGE_ACCEPT, downloadCandidates, sniffImageType } = require('./images');
+const { sanitizeFileName } = require('./fallback');
 
 /**
- * Resolves a Wikipedia thumbnail URL to its high-resolution original image URL.
- * E.g. converts /thumb/ paths and strips trailing dimension segments.
- * @param {string} url The thumbnail URL
- * @returns {string} The original high-resolution URL
- */
-function getHighResUrl(url) {
-  if (!url) return '';
-  
-  // Normalise wikipedia url format
-  if (url.includes('/thumb/')) {
-    const parts = url.split('/');
-    const thumbIndex = parts.indexOf('thumb');
-    if (thumbIndex !== -1) {
-      // Remove the '/thumb' segment
-      parts.splice(thumbIndex, 1);
-      
-      // Look at the last segment. If it represents thumbnail size (e.g., '220px-Filename.jpg'),
-      // we remove it to get the original file path.
-      const lastPart = parts[parts.length - 1];
-      if (lastPart.match(/^\d+px-/) || (lastPart.toLowerCase().endsWith('.png') && parts[parts.length - 2].toLowerCase().endsWith('.svg'))) {
-        parts.pop();
-      }
-      return parts.join('/');
-    }
-  }
-  return url;
-}
-
-/**
- * Downloads a file from a URL and returns its binary buffer and resolved extension.
- * @param {string} url Source URL
+ * Downloads one image, trying candidate URLs best-first (see src/images.js)
+ * and keeping the first response whose BYTES are an image. Wikimedia serves
+ * HTML redirect and error pages with status 200, so neither the status nor
+ * the Content-Type header gets trusted. The extension comes from the bytes.
+ * @param {string} url Image URL as found on the page
+ * @param {object} [opts] { fileWidth, svgMode } — svgMode 'png' or 'jpg' saves
+ *        Wikimedia's PNG rendering of an SVG (no canvas in Node, so 'jpg'
+ *        also lands as PNG here); 'svg' keeps the vector original.
  * @returns {Promise<{buffer: Buffer, ext: string}>}
  */
-async function downloadImage(url) {
-  const highResUrl = getHighResUrl(url);
-  const urlsToTry = [highResUrl, url]; // Try high-res first, fallback to original if 404
-  
-  let lastError = null;
-  for (const targetUrl of urlsToTry) {
-    try {
-      const response = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
-        },
-        signal: AbortSignal.timeout(15000) // 15s timeout
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const contentType = response.headers.get('content-type') || '';
-      let ext = '.jpg'; // default fallback
-      
-      if (contentType.includes('image/png')) ext = '.png';
-      else if (contentType.includes('image/jpeg')) ext = '.jpg';
-      else if (contentType.includes('image/webp')) ext = '.webp';
-      else if (contentType.includes('image/gif')) ext = '.gif';
-      else if (contentType.includes('image/svg+xml')) ext = '.svg';
-      else {
-        // Guess from URL path if header is generic
-        const pathExt = path.extname(new URL(targetUrl).pathname);
-        if (pathExt) ext = pathExt.toLowerCase();
+async function downloadImage(url, opts = {}) {
+  const svgMode = opts.svgMode === 'svg' ? 'svg' : 'png';
+  const tried = [];
+  for (const candidate of downloadCandidates(url, { fileWidth: opts.fileWidth, svgMode })) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(candidate, {
+          headers: { 'User-Agent': WIKIMEDIA_USER_AGENT, Accept: IMAGE_ACCEPT },
+          signal: AbortSignal.timeout(20000)
+        });
+        if (response.status === 429 && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          continue;
+        }
+        if (!response.ok) {
+          tried.push(`HTTP ${response.status}`);
+          break;
+        }
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const kind = sniffImageType(buffer);
+        if (!kind) {
+          tried.push('not an image');
+          break;
+        }
+        return { buffer, ext: `.${kind.ext}` };
+      } catch (error) {
+        tried.push(error.name === 'TimeoutError' ? 'timeout' : error.message);
+        break;
       }
-      
-      return {
-        buffer: Buffer.from(await response.arrayBuffer()),
-        ext
-      };
-    } catch (error) {
-      lastError = error;
-      // Continue loop to try fallback URL
     }
   }
-  
-  throw new Error(`Failed to download image from ${url}. Last error: ${lastError ? lastError.message : 'Unknown'}`);
+  throw new Error(`Failed to download image from ${url} (${tried.join(', ') || 'no candidates'})`);
 }
 
 /**
@@ -106,7 +77,9 @@ function formatImageLink(filename, attachmentFolder, linkMode = 'standard') {
  * @returns {Promise<{filename: string, filePath: string}>}
  */
 async function getSafeFilePath(dir, baseName, ext) {
-  const sanitizedBase = baseName.replace(/[\\/*?:"<>|]/g, '-').trim();
+  // sanitizeFileName strips separators and leading dots, so a name like
+  // "../../x" cannot climb out of the target folder.
+  const sanitizedBase = sanitizeFileName(baseName) || 'untitled';
   let attempt = 0;
   let filename = `${sanitizedBase}${ext}`;
   let filePath = path.join(dir, filename);
@@ -146,7 +119,8 @@ async function exportArticle(payload) {
     saveToVault = false,
     vaultPath = '',
     attachmentsFolder = 'Attachments',
-    linkMode = 'standard'
+    linkMode = 'standard',
+    svgMode = 'png'
   } = payload;
   
   // 1. Establish Directories
@@ -168,7 +142,7 @@ async function exportArticle(payload) {
     attachDir = attachmentsFolder ? path.join(vaultPath, attachmentsFolder) : vaultPath;
   } else {
     // Standalone mode: save in local project's "output/[article-title]" directory
-    const sanitizedTitle = title.replace(/[\\/*?:"<>|]/g, '-').trim();
+    const sanitizedTitle = sanitizeFileName(title) || 'untitled';
     baseDir = path.join(__dirname, '..', 'output', sanitizedTitle);
     attachDir = path.join(baseDir, attachmentsFolder || 'attachments');
   }
@@ -185,7 +159,7 @@ async function exportArticle(payload) {
   console.log(`Downloading ${images.length} images...`);
   for (const img of images) {
     try {
-      const { buffer, ext } = await downloadImage(img.originalUrl);
+      const { buffer, ext } = await downloadImage(img.originalUrl, { fileWidth: img.fileWidth, svgMode });
       const { filename, filePath } = await getSafeFilePath(attachDir, img.finalName, ext);
       
       await fs.writeFile(filePath, buffer);
@@ -221,8 +195,7 @@ async function exportArticle(payload) {
   }
   
   // 4. Save Markdown File
-  const fileBasename = title.replace(/[\\/*?:"<>|]/g, '-').trim();
-  const { filename: finalMdName, filePath: mdSavePath } = await getSafeFilePath(baseDir, fileBasename, '.md');
+  const { filePath: mdSavePath } = await getSafeFilePath(baseDir, title, '.md');
   await fs.writeFile(mdSavePath, finalMarkdown, 'utf8');
   
   return {
@@ -237,6 +210,5 @@ async function exportArticle(payload) {
 
 module.exports = {
   exportArticle,
-  downloadImage,
-  getHighResUrl
+  downloadImage
 };

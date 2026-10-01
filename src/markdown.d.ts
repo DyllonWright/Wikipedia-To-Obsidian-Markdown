@@ -16,3 +16,5 @@ export function assembleMarkdown(
 ): string;
 
 export function compressMarkdownSpacing(md: string): string;
+
+export function footnoteId(id: string): string;

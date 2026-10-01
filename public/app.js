@@ -227,6 +227,16 @@ async function analyzeArticle() {
 }
 
 // Render the parsed content configs in the UI
+/** Escape text bound for innerHTML — captions, headings and names come from Wikipedia and Gemini. */
+function esc(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderArticleView() {
   if (!articleData) return;
 
@@ -254,10 +264,10 @@ function renderArticleView() {
     item.className = `section-item lvl-${section.level}`;
     item.innerHTML = `
       <label class="checkbox-container">
-        <input type="checkbox" class="section-check" data-id="${section.id}" checked>
+        <input type="checkbox" class="section-check" data-id="${esc(section.id)}" checked>
         <span class="checkmark"></span>
         <span class="sec-badge badge-h${section.level}">H${section.level}</span>
-        <span class="sec-title">${section.title}</span>
+        <span class="sec-title">${esc(section.title)}</span>
       </label>
     `;
     sectionsContainer.appendChild(item);
@@ -290,12 +300,12 @@ function renderArticleView() {
           ${img.isPoster ? '<span class="poster-tag">Poster</span>' : ''}
         </div>
         <div class="image-preview-box">
-          <img src="${img.originalUrl}" alt="Preview" onerror="this.src='https://placehold.co/150x150?text=No+Preview'">
+          <img src="${esc(img.originalUrl)}" alt="Preview" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
         </div>
         <div class="image-card-details">
           <label>Obsidian Filename (No Ext)</label>
-          <input type="text" class="image-name-input" data-idx="${idx}" value="${img.suggestedName}">
-          <p class="image-caption-text" title="${img.caption || ''}">${img.caption || 'No caption'}</p>
+          <input type="text" class="image-name-input" data-idx="${idx}" value="${esc(img.suggestedName)}">
+          <p class="image-caption-text" title="${esc(img.caption)}">${esc(img.caption || 'No caption')}</p>
         </div>
       `;
       imagesContainer.appendChild(card);
@@ -364,6 +374,8 @@ function getSelectedImages() {
       const input = document.querySelector(`.image-name-input[data-idx="${idx}"]`);
       list.push({
         originalUrl: articleData.images[idx].originalUrl,
+        fileWidth: articleData.images[idx].fileWidth || 0,
+        caption: articleData.images[idx].caption || '',
         finalName: input.value.trim()
       });
     }

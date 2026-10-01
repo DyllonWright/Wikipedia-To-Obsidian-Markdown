@@ -5,6 +5,25 @@
 // plugin bundle (plugin/).
 
 /**
+ * Make a string safe as a single vault filename (no extension): strips path
+ * separators and the characters Obsidian links or Windows reject, collapses
+ * whitespace, refuses leading dots (no hidden files, no `..`), caps length.
+ * Applied to every suggested name — Gemini's and the user's alike — because
+ * that name becomes a path inside the vault.
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeFileName(name) {
+  return String(name || '')
+    .replace(/[\\/:*?"<>|#^[\]\u0000-\u001f]/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s.-]+/, '')
+    .replace(/[\s.-]+$/, '')
+    .slice(0, 120)
+    .trim();
+}
+
+/**
  * Programmatic fallback if Gemini is unavailable.
  */
 function generateFallbackAnalysis(title, leadText, images, vaultDate) {
@@ -38,23 +57,23 @@ function generateFallbackAnalysis(title, leadText, images, vaultDate) {
       isPoster = true;
       namePart = `${movieTitle} (${releaseYear || 'UnknownYear'}) Theatrical Release Poster`;
     } else {
-      // Derive a short name from caption
+      // Derive a short name from the caption: first sentence, letters in any
+      // script kept (so "divinités" survives), cut at a word boundary.
       let captionClean = img.caption
-        .replace(/[^a-zA-Z0-9\s-_]/g, '')
+        .split(/(?<=[.!?])\s/)[0]
+        .replace(/[^\p{L}\p{N}\s'&,()-]/gu, '')
+        .replace(/\s+/g, ' ')
         .trim();
 
-      if (captionClean.length > 50) {
-        captionClean = captionClean.slice(0, 50).trim();
+      if (captionClean.length > 60) {
+        const cut = captionClean.slice(0, 60);
+        captionClean = cut.slice(0, cut.lastIndexOf(' ') > 30 ? cut.lastIndexOf(' ') : 60).replace(/[\s,&-]+$/, '');
       }
 
       namePart = captionClean || `${title} Image ${index + 1}`;
     }
 
-    // Sanitize suggestedName
-    const suggestedName = `${vaultDate} ${namePart}`
-      .replace(/[\\/*?:"<>|\[\]]/g, '-')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const suggestedName = sanitizeFileName(`${vaultDate} ${namePart}`);
 
     return {
       originalUrl: img.originalUrl,
@@ -73,5 +92,6 @@ function generateFallbackAnalysis(title, leadText, images, vaultDate) {
 }
 
 module.exports = {
-  generateFallbackAnalysis
+  generateFallbackAnalysis,
+  sanitizeFileName
 };

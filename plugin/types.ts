@@ -30,6 +30,9 @@ export interface AnalyzedArticle {
 	movieTitle: string;
 	releaseYear: string;
 	briefDescription: string;
+	/** Where film detection + image names came from, and why (model name or fallback reason). */
+	namingSource: "gemini" | "heuristics";
+	namingNote: string;
 	sections: SectionSummary[];
 	images: AnalyzedImage[];
 	rawSections: RawSection[];

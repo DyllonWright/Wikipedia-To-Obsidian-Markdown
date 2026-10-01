@@ -1,6 +1,9 @@
-import { App, Modal, Notice, Setting, Vault, normalizePath, requestUrl } from "obsidian";
+import { App, Modal, Notice, Setting, Vault, normalizePath } from "obsidian";
 import { assembleMarkdown } from "../src/markdown";
-import { analyzeArticle, getHighResUrl, vaultDateToday } from "./pipeline";
+import { sanitizeFileName } from "../src/fallback";
+import { downloadImage } from "./images";
+import { analyzeArticle, vaultDateToday } from "./pipeline";
+import { buildKeyRing } from "./settings";
 import type WikipediaImporterPlugin from "./main";
 import type { AnalyzedArticle } from "./types";
 
@@ -28,14 +31,6 @@ export async function getSafeVaultPath(vault: Vault, path: string): Promise<stri
 	return newPath;
 }
 
-function extensionFor(contentType: string): string {
-	if (contentType.includes("image/png")) return ".png";
-	if (contentType.includes("image/webp")) return ".webp";
-	if (contentType.includes("image/gif")) return ".gif";
-	if (contentType.includes("image/svg+xml")) return ".svg";
-	return ".jpg";
-}
-
 export class WikiImportModal extends Modal {
 	plugin: WikipediaImporterPlugin;
 	articleData: AnalyzedArticle | null = null;
@@ -56,19 +51,19 @@ export class WikiImportModal extends Modal {
 	private renderUrlInput(): void {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.createEl("h2", { text: "Import Wikipedia article" });
+		contentEl.createEl("h2", { text: "Wikipedia import" });
 
 		const container = contentEl.createDiv({ cls: "wiki-imp-container" });
 		container.createEl("p", {
-			text: "Paste a Wikipedia URL. The importer fetches the article, maps its sections and images, and lets you choose what comes in."
+			text: "Paste an article link from wikipedia.org. The importer fetches the article, maps its sections and images, and lets you choose what comes in."
 		});
 
 		let urlInput = "";
 		new Setting(container)
 			.setName("Article URL")
-			.setDesc("e.g. https://en.wikipedia.org/wiki/Metropolis_(1927_film)")
+			.setDesc("Desktop or mobile links both work.")
 			.addText((text) => {
-				text.setPlaceholder("https://en.wikipedia.org/wiki/...").onChange((value) => {
+				text.setPlaceholder("Paste the article link").onChange((value) => {
 					urlInput = value.trim();
 				});
 				text.inputEl.addClass("wiki-imp-url-input");
@@ -81,14 +76,14 @@ export class WikiImportModal extends Modal {
 		const btn = buttonRow.createEl("button", { text: "Analyze page", cls: "mod-cta" });
 		btn.addEventListener("click", () => {
 			if (urlInput) void this.analyzeUrl(urlInput);
-			else new Notice("Enter a Wikipedia URL first.");
+			else new Notice("Paste an article link first.");
 		});
 	}
 
 	private async analyzeUrl(url: string): Promise<void> {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.createEl("h2", { text: "Analyzing Wikipedia page…" });
+		contentEl.createEl("h2", { text: "Analyzing the article…" });
 		const loading = contentEl.createDiv({ cls: "wiki-imp-loading" });
 		loading.createEl("p", { text: "Fetching the article…" });
 		loading.createEl("p", {
@@ -97,10 +92,15 @@ export class WikiImportModal extends Modal {
 		});
 
 		try {
+			const ring = buildKeyRing(this.app, this.plugin.settings);
 			this.articleData = await analyzeArticle(url, {
-				geminiApiKey: this.plugin.settings.geminiApiKey,
-				imageNameDatePrefix: this.plugin.settings.imageNameDatePrefix
+				ring,
+				imageNameDatePrefix: this.plugin.settings.imageNameDatePrefix,
+				offerGalleryImages: this.plugin.settings.offerGalleryImages
 			});
+			// Remember which keys ran dry or got refused (fingerprints only).
+			this.plugin.settings.keyRingState = ring.toState();
+			await this.plugin.saveSettings();
 			this.renderConfiguration();
 		} catch (e) {
 			console.error(e);
@@ -147,6 +147,14 @@ export class WikiImportModal extends Modal {
 			});
 		}
 
+		container.createEl("p", {
+			cls: "wiki-imp-dim",
+			text:
+				data.namingSource === "gemini"
+					? `Film detection and image names: Gemini (${data.namingNote}).`
+					: `Film detection and image names: built-in heuristics (${data.namingNote}).`
+		});
+
 		// 2. Sections checklist
 		container.createEl("h3", { text: "Sections to include" });
 		const secList = container.createDiv({ cls: "wiki-imp-section-list" });
@@ -181,10 +189,11 @@ export class WikiImportModal extends Modal {
 				const header = rightDiv.createDiv({ cls: "wiki-imp-image-header" });
 				const left = header.createDiv({ cls: "wiki-imp-image-label" });
 				const imgCheck = left.createEl("input", { type: "checkbox" });
-				imgCheck.checked = true;
+				// Gallery thumbnails arrive unticked: pick the few worth keeping.
+				imgCheck.checked = img.source !== "gallery";
 				imgCheck.addClass("wiki-imp-image-checkbox");
 				imgCheck.setAttribute("data-idx", String(idx));
-				left.createSpan({ text: `Image #${idx + 1}` });
+				left.createSpan({ text: img.source === "gallery" ? `Image #${idx + 1} · gallery` : `Image #${idx + 1}` });
 
 				if (img.isPoster) {
 					header.createSpan({ text: "Poster", cls: "wiki-imp-poster-tag" });
@@ -228,7 +237,7 @@ export class WikiImportModal extends Modal {
 
 		importBtn.disabled = true;
 		importBtn.setText("Importing…");
-		new Notice("Starting Wikipedia import…");
+		new Notice("Starting the import…");
 
 		// 1. Gather choices
 		const selectedSections: string[] = [];
@@ -238,7 +247,7 @@ export class WikiImportModal extends Modal {
 				if (box.checked) selectedSections.push(box.getAttribute("data-id") ?? "");
 			});
 
-		const selectedImages: Array<{ originalUrl: string; finalName: string }> = [];
+		const selectedImages: Array<{ originalUrl: string; fileWidth: number; finalName: string }> = [];
 		this.contentEl
 			.querySelectorAll<HTMLInputElement>(".wiki-imp-image-checkbox")
 			.forEach((box) => {
@@ -250,7 +259,10 @@ export class WikiImportModal extends Modal {
 				if (idx >= 0 && input) {
 					selectedImages.push({
 						originalUrl: data.images[idx].originalUrl,
-						finalName: input.value.trim()
+						fileWidth: data.images[idx].fileWidth ?? 0,
+						// The name becomes a vault path: no separators, no "..".
+						finalName:
+							sanitizeFileName(input.value) || sanitizeFileName(`${data.title} image ${idx + 1}`)
 					});
 				}
 			});
@@ -283,15 +295,8 @@ export class WikiImportModal extends Modal {
 
 			for (const img of selectedImages) {
 				try {
-					let imgResponse;
-					try {
-						imgResponse = await requestUrl({ url: getHighResUrl(img.originalUrl), method: "GET", throw: true });
-					} catch {
-						imgResponse = await requestUrl({ url: img.originalUrl, method: "GET", throw: true });
-					}
-
-					const ext = extensionFor(imgResponse.headers["content-type"] || "");
-					const filename = `${img.finalName}${ext}`;
+					const image = await downloadImage(img.originalUrl, img.fileWidth, this.plugin.settings.svgMode);
+					const filename = `${img.finalName}.${image.ext}`;
 					const initialPath = normalizePath(
 						attachFolder ? `${attachFolder}/${filename}` : filename
 					);
@@ -301,10 +306,10 @@ export class WikiImportModal extends Modal {
 						? savePath.substring(savePath.lastIndexOf("/") + 1)
 						: savePath;
 
-					await this.app.vault.createBinary(savePath, imgResponse.arrayBuffer);
+					await this.app.vault.createBinary(savePath, image.data);
 					finalImageMap[img.originalUrl] = finalFilename;
 				} catch (e) {
-					console.error(`Failed to download image ${img.originalUrl}:`, e);
+					console.warn(`Advanced Wikipedia Importer: skipped image ${img.originalUrl}:`, e);
 					new Notice(`Failed to download image: ${img.finalName}`);
 				}
 			}
@@ -316,17 +321,21 @@ export class WikiImportModal extends Modal {
 				if (this.plugin.settings.linkMode === "wikilink") {
 					imgLink = `![[${filename}]]`;
 				} else {
-					const relativePath = attachFolder
-						? `${attachFolder}/${encodeURIComponent(filename)}`
-						: encodeURIComponent(filename);
+					const relativePath = (attachFolder ? `${attachFolder}/${filename}` : filename)
+						.split("/")
+						.map(encodeURIComponent)
+						.join("/");
 					imgLink = `![${filename}](${relativePath})`;
 				}
 				markdown = markdown.split(placeholder).join(imgLink);
 			}
-			markdown = markdown.replace(/\{\{IMAGE:([^}]+)\}\}/g, "");
+			// Images left out (unticked or failed) take their caption line with them.
+			markdown = markdown
+				.replace(/\{\{IMAGE:[^}]+\}\}(?:\n\*[^\n]*\*)?/g, "")
+				.replace(/\n{3,}/g, "\n\n");
 
 			// 6. Create the note without clobbering anything that exists
-			const cleanNoteName = noteTitle.replace(/[\\/*?:"<>|]/g, "-").trim();
+			const cleanNoteName = sanitizeFileName(noteTitle) || "Wikipedia article";
 			const noteFolder = normalizePath(this.plugin.settings.noteFolder || "");
 			if (noteFolder && !(await this.app.vault.adapter.exists(noteFolder))) {
 				await this.app.vault.createFolder(noteFolder);
