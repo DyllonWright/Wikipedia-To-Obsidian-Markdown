@@ -543,6 +543,14 @@ await ok("no keys, or every call failing, lands on heuristics without throwing",
 	assert.equal(calls, 2, "one try per key, no retries against a dry key");
 });
 
+await ok("a name Google redirects to another model never becomes a fallback", () => {
+	// 2026-10-09: 3.7 answered as 3.8 and 3.5 as 3.6, both still listed.
+	assert.deepEqual(
+		gemini.rankFlashModels(["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash",
+			"gemini-3.5-flash", "gemini-3.5-flash-lite"]),
+		["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]);
+});
+
 // --- server module wiring -----------------------------------------------------------
 await ok("server-side gemini adapter still exposes analyzeMetadataAndImages", () => {
 	const nodeGemini = require("../src/node-gemini.js");

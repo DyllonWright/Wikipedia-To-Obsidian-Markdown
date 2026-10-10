@@ -27,6 +27,17 @@ const DISCOVERY_TTL_MS = 6 * 3600 * 1000;
 
 let discoveryCache = null; // { at: number, models: string[] }
 
+// Names `models.list` still lists after Google began routing them to another
+// model. Probed 2026-10-09 (each reply's `modelVersion`) and confirmed against
+// ai.google.dev/gemini-api/docs/deprecations. Left in, a storm on 3.8 would
+// "fall back" onto 3.7 — the same backend under an old name. This caller never
+// probes, so it cannot learn a redirect at run time; this is the dated record.
+// Mirrors REDIRECTED in mission-control's ask_google.py.
+const REDIRECTED = {
+  'gemini-3.5-flash': 'gemini-3.6-flash',
+  'gemini-3.7-flash': 'gemini-3.8-flash'
+};
+
 /**
  * @typedef {(req: {url: string, method: string, headers: Object<string,string>,
  *   body?: string, timeoutMs: number}) => Promise<{status: number, text: string}>} Transport
@@ -88,7 +99,7 @@ function rankFlashModels(names) {
   const parsed = [];
   for (const name of names) {
     const m = /^gemini-(\d+(?:\.\d+)?)-flash(-lite)?$/.exec(name);
-    if (m) parsed.push({ name, version: parseFloat(m[1]), lite: !!m[2] });
+    if (m && !REDIRECTED[name]) parsed.push({ name, version: parseFloat(m[1]), lite: !!m[2] });
   }
   parsed.sort((a, b) => b.version - a.version || Number(a.lite) - Number(b.lite));
   return parsed.map((p) => p.name);
@@ -109,7 +120,9 @@ async function discoverFallbackModels(transport, key) {
       const names = (body.models || [])
         .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
         .map((m) => String(m.name || '').replace(/^models\//, ''));
-      models = rankFlashModels(names).slice(0, 2);
+      // Three: the alias serves the newest full flash, so the first fallback is
+      // often that model under its pinned name, and the third reaches an older one.
+      models = rankFlashModels(names).slice(0, 3);
     } catch (e) { /* unreadable listing: no fallbacks */ }
   }
   discoveryCache = { at: Date.now(), models };
