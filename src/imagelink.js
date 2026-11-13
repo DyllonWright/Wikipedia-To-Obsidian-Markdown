@@ -37,12 +37,25 @@ function resolveImageStyle(imageLinkMode, linkMode) {
  * @param {string} filename Image filename with extension
  * @param {string} folder Attachments folder as a vault path ('' for the root)
  * @param {string} style 'wikilink' or 'markdown'
+ * @param {number|string} [width] Display width in pixels; 0 or empty keeps the original size
  * @returns {string}
  */
-function formatImageEmbed(filename, folder, style) {
-  if (style === 'wikilink') return `![[${filename}]]`;
+function formatImageEmbed(filename, folder, style, width) {
+  const size = normalizeImageWidth(width);
+  const suffix = size ? `|${size}` : '';
+  if (style === 'wikilink') return `![[${filename}${suffix}]]`;
   const vaultPath = folder ? `${folder}/${filename}` : filename;
-  return `![${filename}](${encodeLinkPath(vaultPath)})`;
+  return `![${filename}${suffix}](${encodeLinkPath(vaultPath)})`;
 }
 
-module.exports = { encodeLinkPath, resolveImageStyle, formatImageEmbed };
+/**
+ * Coerces a width setting to whole pixels; anything unusable yields 0 (no size).
+ * @param {unknown} width
+ * @returns {number}
+ */
+function normalizeImageWidth(width) {
+  const n = Math.floor(Number(width));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 4000) : 0;
+}
+
+module.exports = { encodeLinkPath, resolveImageStyle, formatImageEmbed, normalizeImageWidth };

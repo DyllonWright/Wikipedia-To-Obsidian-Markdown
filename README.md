@@ -83,6 +83,7 @@ flowchart LR
    - **Note folder** and **attachments folder** — where notes and images land.
    - **Link mode** — how article links render (wikilink by default).
    - **Image embeds** — *Follow link mode* (default), *Wikilink* `![[image]]`, or *Standard Markdown* `![image](path)`. Pick *Wikilink* to keep Markdown article links alongside embeds that resolve anywhere in the vault.
+   - **Image width** — a display width in pixels, written into every embed (`![[image|400]]`), so large images load at a readable size. Leave empty for the original size.
    - **Omit references** — for shorter notes.
    - **SVG images** — *Convert to PNG* (default), *Convert to JPG*, or *Keep as SVG*.
    - **Offer gallery images** — off by default; when on, gallery thumbnails appear in the checklist unticked.

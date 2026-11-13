@@ -322,7 +322,12 @@ export class WikiImportModal extends Modal {
 			);
 			for (const [url, filename] of Object.entries(finalImageMap)) {
 				const placeholder = `{{IMAGE:${url}}}`;
-				const imgLink = formatImageEmbed(filename, attachFolder, imageStyle);
+				const imgLink = formatImageEmbed(
+					filename,
+					attachFolder,
+					imageStyle,
+					this.plugin.settings.imageWidth
+				);
 				markdown = markdown.split(placeholder).join(imgLink);
 			}
 			// Images left out (unticked or failed) take their caption line with them.

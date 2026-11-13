@@ -572,6 +572,17 @@ await ok("markdown image paths survive Obsidian's decodeURI", () => {
 	assert.equal(resolveImageStyle(undefined, "comment"), "markdown");
 });
 
+await ok("a default image width lands in the embed as |width", () => {
+	const { formatImageEmbed, normalizeImageWidth } = require("../src/imagelink.js");
+	assert.equal(formatImageEmbed("a b.png", "Attachments", "wikilink", 400), "![[a b.png|400]]");
+	assert.equal(formatImageEmbed("a b.png", "Attachments", "markdown", "300"), "![a b.png|300](Attachments/a%20b.png)");
+	for (const none of [0, "", undefined, null, "abc", -5, NaN]) {
+		assert.equal(formatImageEmbed("a.png", "", "wikilink", none), "![[a.png]]");
+	}
+	assert.equal(normalizeImageWidth("250.9"), 250);
+	assert.equal(normalizeImageWidth(999999), 4000);
+});
+
 // --- server module wiring -----------------------------------------------------------
 await ok("server-side gemini adapter still exposes analyzeMetadataAndImages", () => {
 	const nodeGemini = require("../src/node-gemini.js");

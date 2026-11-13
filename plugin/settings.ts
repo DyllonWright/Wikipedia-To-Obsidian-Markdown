@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, SecretComponent, Setting } from "obsidian";
 import { KeyRing, parseKeyList } from "../src/keyring";
+import { normalizeImageWidth } from "../src/imagelink";
 import type WikipediaImporterPlugin from "./main";
 
 /** What happens to SVG images: rasterize (phone galleries can't show SVG) or keep. */
@@ -20,6 +21,8 @@ export interface WikipediaImporterSettings {
 	linkMode: string;
 	/** How image embeds render: auto (follow linkMode) | wikilink | markdown. */
 	imageLinkMode: string;
+	/** Display width in pixels appended to embeds as "|width"; 0 = original size. */
+	imageWidth: number;
 	/** Skip reference footnotes and bibliography sections. */
 	omitReferences: boolean;
 	/** Prefix suggested image names with today's date (YYYY MM DD). */
@@ -43,6 +46,7 @@ export const DEFAULT_SETTINGS: WikipediaImporterSettings = {
 	noteFolder: "",
 	linkMode: "wikilink",
 	imageLinkMode: "auto",
+	imageWidth: 0,
 	omitReferences: false,
 	imageNameDatePrefix: true,
 	svgMode: "png",
@@ -89,6 +93,7 @@ export function migrateSettings(
 	const settings: WikipediaImporterSettings = { ...DEFAULT_SETTINGS, ...data };
 	if (!["png", "jpg", "svg"].includes(settings.svgMode)) settings.svgMode = "png";
 	if (!["auto", "wikilink", "markdown"].includes(settings.imageLinkMode)) settings.imageLinkMode = "auto";
+	settings.imageWidth = normalizeImageWidth(settings.imageWidth);
 	if (!Array.isArray(settings.geminiKeySecrets)) settings.geminiKeySecrets = [];
 	return { settings, migrated };
 }
@@ -173,6 +178,19 @@ export class WikipediaImporterSettingTab extends PluginSettingTab {
 					.setValue(settings.imageLinkMode)
 					.onChange(async (value) => {
 						settings.imageLinkMode = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Image width")
+			.setDesc("Display width in pixels, written into each embed as |width. Leave empty to show images at their original size.")
+			.addText((text) =>
+				text
+					.setPlaceholder("Original size")
+					.setValue(settings.imageWidth ? String(settings.imageWidth) : "")
+					.onChange(async (value) => {
+						settings.imageWidth = normalizeImageWidth(value.trim());
 						await this.plugin.saveSettings();
 					})
 			);
