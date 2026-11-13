@@ -447,7 +447,10 @@ async function updatePreviewText() {
       if (linkMode === 'wikilink') {
         replaceLink = `![[${img.finalName}.png]]`;
       } else {
-        replaceLink = `![${img.finalName}](${attachmentsFolder}/${encodeURIComponent(img.finalName)}.png)`;
+        // Mirrors encodeLinkPath in src/imagelink.js: Obsidian decodes with decodeURI.
+        const linkPath = `${attachmentsFolder}/${img.finalName}.png`
+          .replace(/%/g, '%25').replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29');
+        replaceLink = `![${img.finalName}](${linkPath})`;
       }
       md = md.split(placeholder).join(replaceLink);
     });

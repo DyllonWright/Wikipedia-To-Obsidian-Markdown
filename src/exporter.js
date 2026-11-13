@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { WIKIMEDIA_USER_AGENT, IMAGE_ACCEPT, downloadCandidates, sniffImageType } = require('./images');
 const { sanitizeFileName } = require('./fallback');
+const { formatImageEmbed, resolveImageStyle } = require('./imagelink');
 
 /**
  * Downloads one image, trying candidate URLs best-first (see src/images.js)
@@ -57,15 +58,7 @@ async function downloadImage(url, opts = {}) {
  * @returns {string} Markdown image link
  */
 function formatImageLink(filename, attachmentFolder, linkMode = 'standard') {
-  if (linkMode === 'wikilink') {
-    // Obsidian style: ![[filename]]
-    // (Obsidian resolves files automatically anywhere in the vault, but we can just use the name)
-    return `![[${filename}]]`;
-  } else {
-    // Standard markdown: ![alt](path)
-    const relativePath = attachmentFolder ? `${attachmentFolder}/${encodeURIComponent(filename)}` : encodeURIComponent(filename);
-    return `![${filename}](${relativePath})`;
-  }
+  return formatImageEmbed(filename, attachmentFolder, resolveImageStyle('auto', linkMode));
 }
 
 /**

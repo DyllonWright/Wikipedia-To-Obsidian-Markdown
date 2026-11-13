@@ -18,6 +18,8 @@ export interface WikipediaImporterSettings {
 	noteFolder: string;
 	/** How article-internal links render: standard | wikilink | comment | plain. */
 	linkMode: string;
+	/** How image embeds render: auto (follow linkMode) | wikilink | markdown. */
+	imageLinkMode: string;
 	/** Skip reference footnotes and bibliography sections. */
 	omitReferences: boolean;
 	/** Prefix suggested image names with today's date (YYYY MM DD). */
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: WikipediaImporterSettings = {
 	attachmentsFolder: "Attachments",
 	noteFolder: "",
 	linkMode: "wikilink",
+	imageLinkMode: "auto",
 	omitReferences: false,
 	imageNameDatePrefix: true,
 	svgMode: "png",
@@ -85,6 +88,7 @@ export function migrateSettings(
 
 	const settings: WikipediaImporterSettings = { ...DEFAULT_SETTINGS, ...data };
 	if (!["png", "jpg", "svg"].includes(settings.svgMode)) settings.svgMode = "png";
+	if (!["auto", "wikilink", "markdown"].includes(settings.imageLinkMode)) settings.imageLinkMode = "auto";
 	if (!Array.isArray(settings.geminiKeySecrets)) settings.geminiKeySecrets = [];
 	return { settings, migrated };
 }
@@ -154,6 +158,21 @@ export class WikipediaImporterSettingTab extends PluginSettingTab {
 					.setValue(settings.linkMode)
 					.onChange(async (value) => {
 						settings.linkMode = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Image embeds")
+			.setDesc("How downloaded images embed in the note. Wikilink embeds resolve anywhere in the vault.")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("auto", "Follow link mode")
+					.addOption("wikilink", "Wikilink ![[image]]")
+					.addOption("markdown", "Standard Markdown ![image](path)")
+					.setValue(settings.imageLinkMode)
+					.onChange(async (value) => {
+						settings.imageLinkMode = value;
 						await this.plugin.saveSettings();
 					})
 			);

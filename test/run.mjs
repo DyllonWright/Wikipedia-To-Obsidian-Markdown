@@ -551,6 +551,27 @@ await ok("a name Google redirects to another model never becomes a fallback", ()
 		["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]);
 });
 
+// --- image embeds (issue #1) ---------------------------------------------------------
+await ok("markdown image paths survive Obsidian's decodeURI", () => {
+	const { encodeLinkPath, formatImageEmbed, resolveImageStyle } = require("../src/imagelink.js");
+	const name = "Brooch with a griffin protome, from the necropolis of (1) 100% & more; a+b=c $ @.jpg";
+	const embed = formatImageEmbed(name, "My Files/Attachments", "markdown");
+	const dest = embed.slice(embed.indexOf("](") + 2, -1);
+	// Obsidian resolves the destination with decodeURI, which skips %2C and friends.
+	assert.equal(decodeURI(dest), `My Files/Attachments/${name}`);
+	assert.ok(!/[ ()]/.test(dest), "no raw space or paren inside the destination");
+	assert.ok(!dest.includes("%2C"), "commas stay literal");
+	assert.equal(formatImageEmbed("a b.png", "", "markdown"), "![a b.png](a%20b.png)");
+	assert.equal(formatImageEmbed("a b.png", "Attachments", "wikilink"), "![[a b.png]]");
+	assert.equal(encodeLinkPath("x/y.png"), "x/y.png");
+	assert.equal(resolveImageStyle("auto", "wikilink"), "wikilink");
+	assert.equal(resolveImageStyle("auto", "standard"), "markdown");
+	assert.equal(resolveImageStyle("auto", "plain"), "markdown");
+	assert.equal(resolveImageStyle("wikilink", "standard"), "wikilink");
+	assert.equal(resolveImageStyle("markdown", "wikilink"), "markdown");
+	assert.equal(resolveImageStyle(undefined, "comment"), "markdown");
+});
+
 // --- server module wiring -----------------------------------------------------------
 await ok("server-side gemini adapter still exposes analyzeMetadataAndImages", () => {
 	const nodeGemini = require("../src/node-gemini.js");
