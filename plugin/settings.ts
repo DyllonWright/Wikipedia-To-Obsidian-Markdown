@@ -1,4 +1,5 @@
 import { App, PluginSettingTab, SecretComponent, Setting } from "obsidian";
+import type { SettingDefinitionGroup, SettingDefinitionItem, SettingDefinitionRender } from "obsidian";
 import { KeyRing, parseKeyList } from "../src/keyring";
 import { normalizeImageWidth } from "../src/imagelink";
 import type WikipediaImporterPlugin from "./main";
@@ -112,6 +113,18 @@ export function buildKeyRing(app: App, settings: WikipediaImporterSettings): Key
 	return new KeyRing(keys, settings.keyRingState);
 }
 
+/** One settings row: `name` and `desc` feed settings search, `render` builds the control. */
+function row(name: string, desc: string, build: (setting: Setting) => void): SettingDefinitionRender {
+	return {
+		name,
+		desc,
+		render: (setting) => {
+			setting.setName(name).setDesc(desc);
+			build(setting);
+		}
+	};
+}
+
 export class WikipediaImporterSettingTab extends PluginSettingTab {
 	plugin: WikipediaImporterPlugin;
 
@@ -120,205 +133,248 @@ export class WikipediaImporterSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		const settings = this.plugin.settings;
-
-		new Setting(containerEl)
-			.setName("Note folder")
-			.setDesc("Vault folder where imported notes land. Leave empty for the vault root.")
-			.addText((text) =>
-				text
-					.setPlaceholder("Wikipedia")
-					.setValue(settings.noteFolder)
-					.onChange(async (value) => {
-						settings.noteFolder = value.trim();
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Attachments folder")
-			.setDesc("Vault folder where downloaded images land.")
-			.addText((text) =>
-				text
-					.setPlaceholder("Attachments")
-					.setValue(settings.attachmentsFolder)
-					.onChange(async (value) => {
-						settings.attachmentsFolder = value.trim() || "Attachments";
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Link mode")
-			.setDesc("How links inside the article render in the note.")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("standard", "Standard Markdown [text](URL)")
-					.addOption("wikilink", "Wikilink [[target|text]]")
-					.addOption("comment", "Commented-out text%%[link](URL)%%")
-					.addOption("plain", "Plain text (strip links)")
-					.setValue(settings.linkMode)
-					.onChange(async (value) => {
-						settings.linkMode = value;
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Image embeds")
-			.setDesc("How downloaded images embed in the note. Wikilink embeds resolve anywhere in the vault.")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("auto", "Follow link mode")
-					.addOption("wikilink", "Wikilink ![[image]]")
-					.addOption("markdown", "Standard Markdown ![image](path)")
-					.setValue(settings.imageLinkMode)
-					.onChange(async (value) => {
-						settings.imageLinkMode = value;
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Image width")
-			.setDesc("Display width in pixels, written into each embed as |width. Leave empty to show images at their original size.")
-			.addText((text) =>
-				text
-					.setPlaceholder("Original size")
-					.setValue(settings.imageWidth ? String(settings.imageWidth) : "")
-					.onChange(async (value) => {
-						settings.imageWidth = normalizeImageWidth(value.trim());
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Omit references")
-			.setDesc("Skip footnote markers, reference lists, and their headings.")
-			.addToggle((toggle) =>
-				toggle.setValue(settings.omitReferences).onChange(async (value) => {
-					settings.omitReferences = value;
-					await this.plugin.saveSettings();
-				})
-			);
-
-		new Setting(containerEl).setName("Images").setHeading();
-
-		new Setting(containerEl)
-			.setName("SVG images")
-			.setDesc(
-				"Many phone galleries can't open SVG. Converting saves a raster copy " +
-					"rendered by Wikimedia at 1280px wide. PNG keeps transparency; JPG " +
-					"fills it with white."
-			)
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("png", "Convert to PNG")
-					.addOption("jpg", "Convert to JPG")
-					.addOption("svg", "Keep as SVG")
-					.setValue(settings.svgMode)
-					.onChange(async (value) => {
-						settings.svgMode = value as SvgMode;
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Offer gallery images")
-			.setDesc(
-				"The importer always brings the infobox picture and the article's captioned " +
-					"figures. Galleries often hold dozens of loosely related thumbnails (flags, " +
-					"emblems, logos); turn this on to list them in the checklist, unticked, so " +
-					"you can pick the few you want."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(settings.offerGalleryImages).onChange(async (value) => {
-					settings.offerGalleryImages = value;
-					await this.plugin.saveSettings();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Date-prefixed image names")
-			.setDesc(
-				"Prefix suggested image filenames with today's date, e.g. " +
-					"“2026 07 11 The Gambler (2014) Theatrical Release Poster”."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(settings.imageNameDatePrefix).onChange(async (value) => {
-					settings.imageNameDatePrefix = value;
-					await this.plugin.saveSettings();
-				})
-			);
-
-		this.displayGemini(containerEl);
+	/** Declarative settings (Obsidian 1.13.0+): these rows show up in settings search. */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [...this.generalRows(), this.imageGroup(), this.geminiGroup()];
 	}
 
-	private displayGemini(containerEl: HTMLElement): void {
+	/**
+	 * Fallback for Obsidian older than 1.13.0, which knows nothing of
+	 * getSettingDefinitions(). Newer versions render the definitions and skip this.
+	 */
+	display(): void {
+		this.renderLegacy();
+	}
+
+	/** Re-render after a change that adds or removes rows. */
+	private refresh(): void {
+		const tab = this as unknown as { update?: () => void };
+		if (typeof tab.update === "function") tab.update();
+		else this.renderLegacy();
+	}
+
+	private renderLegacy(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+		const draw = (def: SettingDefinitionRender) => {
+			def.render(new Setting(containerEl), undefined as never);
+		};
+		this.generalRows().forEach(draw);
+		for (const group of [this.imageGroup(), this.geminiGroup()]) {
+			new Setting(containerEl).setName(group.heading ?? "").setHeading();
+			(group.items as SettingDefinitionRender[]).forEach(draw);
+		}
+	}
+
+	private generalRows(): SettingDefinitionRender[] {
 		const settings = this.plugin.settings;
-		new Setting(containerEl).setName("Gemini (optional)").setHeading();
-
-		containerEl.createEl("p", {
-			cls: "setting-item-description",
-			text:
-				"With a Google Gemini key, the importer detects film articles and writes " +
-				"descriptive image names from captions. Without one, built-in heuristics " +
-				"handle both. Keys live in Obsidian's keychain, never in this plugin's " +
-				"data.json, and leave your device only in calls to Google's API. Add " +
-				"several keys to form a ring: when one runs out of daily quota, the next " +
-				"takes over until midnight Pacific, when Google resets the quota."
-		});
-
-		settings.geminiKeySecrets.forEach((id, index) => {
-			new Setting(containerEl)
-				.setName(`Key ${index + 1}`)
-				.setDesc("Pick or create a keychain secret holding a Gemini API key.")
-				.addComponent((el) =>
-					new SecretComponent(this.app, el).setValue(id).onChange(async (value) => {
-						settings.geminiKeySecrets[index] = value;
-						await this.plugin.saveSettings();
-						this.display();
+		const save = () => this.plugin.saveSettings();
+		return [
+			row("Note folder", "Vault folder where imported notes land. Leave empty for the vault root.", (s) =>
+				s.addText((text) =>
+					text
+						.setPlaceholder("Wikipedia")
+						.setValue(settings.noteFolder)
+						.onChange(async (value) => {
+							settings.noteFolder = value.trim();
+							await save();
+						})
+				)
+			),
+			row("Attachments folder", "Vault folder where downloaded images land.", (s) =>
+				s.addText((text) =>
+					text
+						.setPlaceholder("Attachments")
+						.setValue(settings.attachmentsFolder)
+						.onChange(async (value) => {
+							settings.attachmentsFolder = value.trim() || "Attachments";
+							await save();
+						})
+				)
+			),
+			row("Link mode", "How links inside the article render in the note.", (s) =>
+				s.addDropdown((dropdown) =>
+					dropdown
+						.addOption("standard", "Standard Markdown [text](URL)")
+						.addOption("wikilink", "Wikilink [[target|text]]")
+						.addOption("comment", "Commented-out text%%[link](URL)%%")
+						.addOption("plain", "Plain text (strip links)")
+						.setValue(settings.linkMode)
+						.onChange(async (value) => {
+							settings.linkMode = value;
+							await save();
+						})
+				)
+			),
+			row("Omit references", "Skip footnote markers, reference lists, and their headings.", (s) =>
+				s.addToggle((toggle) =>
+					toggle.setValue(settings.omitReferences).onChange(async (value) => {
+						settings.omitReferences = value;
+						await save();
 					})
 				)
-				.addExtraButton((button) =>
-					button
-						.setIcon("trash")
-						.setTooltip("Remove from ring (the keychain secret stays)")
-						.onClick(async () => {
-							settings.geminiKeySecrets.splice(index, 1);
-							await this.plugin.saveSettings();
-							this.display();
-						})
-				);
+			)
+		];
+	}
+
+	private imageGroup(): SettingDefinitionGroup {
+		const settings = this.plugin.settings;
+		const save = () => this.plugin.saveSettings();
+		return {
+			type: "group",
+			heading: "Images",
+			items: [
+				row(
+					"Image embeds",
+					"How downloaded images embed in the note. Wikilink embeds resolve anywhere in the vault.",
+					(s) =>
+						s.addDropdown((dropdown) =>
+							dropdown
+								.addOption("auto", "Follow link mode")
+								.addOption("wikilink", "Wikilink ![[image]]")
+								.addOption("markdown", "Standard Markdown ![image](path)")
+								.setValue(settings.imageLinkMode)
+								.onChange(async (value) => {
+									settings.imageLinkMode = value;
+									await save();
+								})
+						)
+				),
+				row(
+					"Image width",
+					"Display width in pixels, written into each embed as |width. Leave empty to show images at their original size.",
+					(s) =>
+						s.addText((text) =>
+							text
+								.setPlaceholder("Original size")
+								.setValue(settings.imageWidth ? String(settings.imageWidth) : "")
+								.onChange(async (value) => {
+									settings.imageWidth = normalizeImageWidth(value.trim());
+									await save();
+								})
+						)
+				),
+				row(
+					"SVG images",
+					"Many phone galleries can't open SVG. Converting saves a raster copy " +
+						"rendered by Wikimedia at 1280px wide. PNG keeps transparency; JPG " +
+						"fills it with white.",
+					(s) =>
+						s.addDropdown((dropdown) =>
+							dropdown
+								.addOption("png", "Convert to PNG")
+								.addOption("jpg", "Convert to JPG")
+								.addOption("svg", "Keep as SVG")
+								.setValue(settings.svgMode)
+								.onChange(async (value) => {
+									settings.svgMode = value as SvgMode;
+									await save();
+								})
+						)
+				),
+				row(
+					"Offer gallery images",
+					"The importer always brings the infobox picture and the article's captioned " +
+						"figures. Galleries often hold dozens of loosely related thumbnails (flags, " +
+						"emblems, logos); turn this on to list them in the checklist, unticked, so " +
+						"you can pick the few you want.",
+					(s) =>
+						s.addToggle((toggle) =>
+							toggle.setValue(settings.offerGalleryImages).onChange(async (value) => {
+								settings.offerGalleryImages = value;
+								await save();
+							})
+						)
+				),
+				row(
+					"Date-prefixed image names",
+					"Prefix suggested image filenames with today's date, e.g. " +
+						"“2026 07 11 The Gambler (2014) Theatrical Release Poster”.",
+					(s) =>
+						s.addToggle((toggle) =>
+							toggle.setValue(settings.imageNameDatePrefix).onChange(async (value) => {
+								settings.imageNameDatePrefix = value;
+								await save();
+							})
+						)
+				)
+			]
+		};
+	}
+
+	private geminiGroup(): SettingDefinitionGroup {
+		const settings = this.plugin.settings;
+		const items: SettingDefinitionRender[] = [
+			row(
+				"Key storage",
+				"With a Google Gemini key, the importer detects film articles and writes " +
+					"descriptive image names from captions. Without one, built-in heuristics " +
+					"handle both. Keys live in Obsidian's keychain, never in this plugin's " +
+					"data.json, and leave your device only in calls to Google's API. Add " +
+					"several keys to form a ring: when one runs out of daily quota, the next " +
+					"takes over until midnight Pacific, when Google resets the quota.",
+				() => {}
+			)
+		];
+
+		settings.geminiKeySecrets.forEach((id, index) => {
+			items.push(
+				row(`Key ${index + 1}`, "Pick or create a keychain secret holding a Gemini API key.", (s) =>
+					s
+						.addComponent((el) =>
+							new SecretComponent(this.app, el).setValue(id).onChange(async (value) => {
+								settings.geminiKeySecrets[index] = value ?? "";
+								await this.plugin.saveSettings();
+								this.refresh();
+							})
+						)
+						.addExtraButton((button) =>
+							button
+								.setIcon("trash")
+								.setTooltip("Remove from ring (the keychain secret stays)")
+								.onClick(async () => {
+									settings.geminiKeySecrets.splice(index, 1);
+									await this.plugin.saveSettings();
+									this.refresh();
+								})
+						)
+				)
+			);
 		});
 
-		new Setting(containerEl).addButton((button) =>
-			button.setButtonText("Add key").onClick(async () => {
-				settings.geminiKeySecrets.push("");
-				await this.plugin.saveSettings();
-				this.display();
-			})
+		items.push(
+			row("Add key", "Add another Gemini key to the ring.", (s) =>
+				s.addButton((button) =>
+					button.setButtonText("Add key").onClick(async () => {
+						settings.geminiKeySecrets.push("");
+						await this.plugin.saveSettings();
+						this.refresh();
+					})
+				)
+			)
 		);
 
 		const ring = buildKeyRing(this.app, settings);
-		if (ring.keys.length === 0) return;
-
-		const status = new Setting(containerEl)
-			.setName("Ring status")
-			.setDesc("Fingerprints only — key values never appear here.");
-		const list = status.descEl.createEl("ul", { cls: "wiki-imp-ring-status" });
-		for (const k of ring.describe()) {
-			list.createEl("li", { text: `${k.active ? "▶ " : ""}${k.label} · ${k.fp} · ${k.status}` });
+		if (ring.keys.length > 0) {
+			items.push(
+				row("Ring status", "Fingerprints only — key values never appear here.", (s) => {
+					const list = s.descEl.createEl("ul", { cls: "wiki-imp-ring-status" });
+					for (const k of ring.describe()) {
+						list.createEl("li", {
+							text: `${k.active ? "▶ " : ""}${k.label} · ${k.fp} · ${k.status}`
+						});
+					}
+					s.addButton((button) =>
+						button.setButtonText("Clear marks").onClick(async () => {
+							settings.keyRingState = {};
+							await this.plugin.saveSettings();
+							this.refresh();
+						})
+					);
+				})
+			);
 		}
-		status.addButton((button) =>
-			button.setButtonText("Clear marks").onClick(async () => {
-				settings.keyRingState = {};
-				await this.plugin.saveSettings();
-				this.display();
-			})
-		);
+
+		return { type: "group", heading: "Gemini (optional)", items };
 	}
 }
