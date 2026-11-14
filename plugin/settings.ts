@@ -113,8 +113,13 @@ export function buildKeyRing(app: App, settings: WikipediaImporterSettings): Key
 	return new KeyRing(keys, settings.keyRingState);
 }
 
-/** One settings row: `name` and `desc` feed settings search, `render` builds the control. */
-function row(name: string, desc: string, build: (setting: Setting) => void): SettingDefinitionRender {
+/**
+ * One settings row: `name` and `desc` feed settings search, `render` builds the control.
+ * `build` returns `unknown` because Setting's chainable methods hand back the Setting,
+ * which carries a `then` method; a `void` return type makes linters read that as a
+ * dropped promise.
+ */
+function row(name: string, desc: string, build: (setting: Setting) => unknown): SettingDefinitionRender {
 	return {
 		name,
 		desc,
