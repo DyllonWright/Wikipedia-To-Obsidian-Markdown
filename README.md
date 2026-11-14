@@ -149,6 +149,18 @@ The layout separates what runs where:
 
 One stylistic note: the README keeps to [E-Prime](https://en.wikipedia.org/wiki/E-Prime) — English without any form of "to be" — a small tribute to Korzybski, who taught that "the map is not the territory," and to Robert Anton Wilson, who kept the lesson funny. A tool that turns encyclopedia maps into personal ones might as well mind the difference.
 
+## Buy me a coffee (or, uh, a bitcoin?)
+
+No tip jar popup, no subscription, no guilting you into buying me a coffee. My hobby projects cost nothing. They always will. But I do take magic internet money :3
+
+| Coin | Address |
+| --- | --- |
+| ☕ Bitcoin (BTC) | `bc1qk69hgdnqchv0kjcwv2t9pdlj8ngxllp2pevgxr` |
+| 🍵 Ethereum (ETH) | `0x0Bee36423cE9D7c8c8349d56a17a6e90eB691221` |
+| 🥤 Solana (SOL) | `esDXQ53bVfKtq6iWknyABBu5KSApCsUGA4nCWNGNUQ8` |
+
+Copy an address from this page only, and compare the first and last characters before sending.
+
 ## License
 
 MIT
