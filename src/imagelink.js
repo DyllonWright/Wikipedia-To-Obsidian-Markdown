@@ -58,4 +58,24 @@ function normalizeImageWidth(width) {
   return Number.isFinite(n) && n > 0 ? Math.min(n, 4000) : 0;
 }
 
-module.exports = { encodeLinkPath, resolveImageStyle, formatImageEmbed, normalizeImageWidth };
+/**
+ * Swaps `{{IMAGE:url}}` placeholders for embeds. On a table row, every "|"
+ * inside the embed (the width suffix `|250`, a wikilink alias) gets escaped
+ * to "\|" so it can't split the cell, and newlines collapse to spaces.
+ * @param {string} markdown
+ * @param {(url: string, inTable: boolean) => string | undefined} resolve
+ *        Embed for a url; undefined leaves the placeholder in place
+ * @returns {string}
+ */
+function fillImagePlaceholders(markdown, resolve) {
+  return String(markdown || '').split('\n').map((line) => {
+    const inTable = /^\s*\|/.test(line);
+    return line.replace(/\{\{IMAGE:([^}]+)\}\}/g, (match, url) => {
+      const embed = resolve(url, inTable);
+      if (embed === undefined) return match;
+      return inTable ? embed.replace(/\s*\n\s*/g, ' ').replace(/\\?\|/g, '\\|') : embed;
+    });
+  }).join('\n');
+}
+
+module.exports = { encodeLinkPath, resolveImageStyle, formatImageEmbed, normalizeImageWidth, fillImagePlaceholders };

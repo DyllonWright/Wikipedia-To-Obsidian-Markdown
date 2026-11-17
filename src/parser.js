@@ -111,7 +111,7 @@ function isIconLike(src, width, height) {
  * @param {string} baseUrl
  * @param {Array} images Image registry (mutated)
  * @param {string} [caption]
- * @param {'infobox'|'figure'|'gallery'} [source] Where the image sat in the article
+ * @param {'infobox'|'figure'|'gallery'|'table'} [source] Where the image sat in the article
  * @returns {string|null}
  */
 function registerImage($, imgEl, baseUrl, images, caption = '', source = 'figure') {
@@ -275,7 +275,11 @@ function cleanNodeText($, node, baseUrl, linkMode = 'standard', inTable = false,
       if (!text.trim()) return;
       const target = wikiTarget(href);
 
-      if (target && NON_ARTICLE_NAMESPACES.test(target.title)) {
+      // A picture's own link (./File:…) wraps only the image; an embed
+      // inside link text would never render.
+      if (text.includes('{{IMAGE:')) {
+        parts.push(text);
+      } else if (target && NON_ARTICLE_NAMESPACES.test(target.title)) {
         parts.push(text);
       } else if ($child.hasClass('new') || href.includes('redlink=1')) {
         parts.push(text); // red link: no article to point at
@@ -299,9 +303,18 @@ function cleanNodeText($, node, baseUrl, linkMode = 'standard', inTable = false,
       const text = $child.text();
       if (text) parts.push(`\`${text.replace(/`/g, "'")}\``);
     } else if (tagName === 'img') {
-      // Images inside running text and table cells — flags beside names,
-      // icons in lists, link-box logos — never belong to the note. Article
-      // images arrive through figures, the infobox, and (opt-in) galleries.
+      // Images inside running text — flags beside names, icons in lists,
+      // link-box logos — never belong to the note. Article images arrive
+      // through figures, the infobox, (opt-in) galleries, and table cells
+      // that hold a picture and nothing else (the McCollough effect's
+      // induction grids, issue #1, 2026-11-17). An image sitting beside
+      // text in a cell stays decoration.
+      if (!inTable) return;
+      const $cell = $child.closest('td, th');
+      if (!$cell.length || $cell.text().trim()) return;
+      if ($child.closest('.infobox, .navbox, .sidebar, .metadata, .ambox').length) return;
+      const key = registerImage($, child, baseUrl, images, '', 'table');
+      if (key) parts.push(` {{IMAGE:${key}}} `);
       return;
     } else if (tagName === 'sup') {
       const isRef = $child.hasClass('reference') || /^\[[^\]]+\]$/.test($child.text().trim()) && $child.find('a[href*="#cite_note-"]').length > 0;

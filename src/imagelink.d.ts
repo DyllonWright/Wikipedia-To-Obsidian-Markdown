@@ -10,3 +10,8 @@ export function formatImageEmbed(
 ): string;
 
 export function normalizeImageWidth(width: unknown): number;
+
+export function fillImagePlaceholders(
+	markdown: string,
+	resolve: (url: string, inTable: boolean) => string | undefined
+): string;

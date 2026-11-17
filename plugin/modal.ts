@@ -1,7 +1,7 @@
 import { App, Modal, Notice, Setting, Vault, normalizePath } from "obsidian";
 import { assembleMarkdown } from "../src/markdown";
 import { sanitizeFileName } from "../src/fallback";
-import { formatImageEmbed, resolveImageStyle } from "../src/imagelink";
+import { fillImagePlaceholders, formatImageEmbed, resolveImageStyle } from "../src/imagelink";
 import { downloadImage } from "./images";
 import { analyzeArticle, vaultDateToday } from "./pipeline";
 import { buildKeyRing } from "./settings";
@@ -320,16 +320,12 @@ export class WikiImportModal extends Modal {
 				this.plugin.settings.imageLinkMode,
 				this.plugin.settings.linkMode
 			);
-			for (const [url, filename] of Object.entries(finalImageMap)) {
-				const placeholder = `{{IMAGE:${url}}}`;
-				const imgLink = formatImageEmbed(
-					filename,
-					attachFolder,
-					imageStyle,
-					this.plugin.settings.imageWidth
-				);
-				markdown = markdown.split(placeholder).join(imgLink);
-			}
+			markdown = fillImagePlaceholders(markdown, (url) => {
+				const filename = finalImageMap[url];
+				return filename === undefined
+					? undefined
+					: formatImageEmbed(filename, attachFolder, imageStyle, this.plugin.settings.imageWidth);
+			});
 			// Images left out (unticked or failed) take their caption line with them.
 			markdown = markdown
 				.replace(/\{\{IMAGE:[^}]+\}\}(?:\n\*[^\n]*\*)?/g, "")

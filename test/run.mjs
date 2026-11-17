@@ -387,6 +387,36 @@ await ok("galleries arrive only on request, tagged so the modal leaves them unti
 	assert.equal(p.images[2].caption, "USVA headstone emblem");
 });
 
+// --- pictures inside table cells (issue #1: McCollough effect grids) -----------------
+const TABLE_PICTURE_HTML = `
+<html><body><h1 id="firstHeading">McCollough effect</h1>
+<div id="mw-content-text"><div class="mw-parser-output"><section>
+  <table class="wikitable mw-collapsible"><tbody>
+    <tr><th colspan="2">Test/Induction Images</th></tr>
+    <tr><td><span typeof="mw:File"><a href="./File:Red_grid.svg" class="mw-file-description"><img src="//thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Red_grid.svg/250px-Red_grid.svg.png" width="250" height="250" data-file-width="640"/></a></span></td>
+        <td><span typeof="mw:File"><a href="./File:Green_grid.svg" class="mw-file-description"><img src="//thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Green_grid.svg/250px-Green_grid.svg.png" width="250" height="250" data-file-width="640"/></a></span></td></tr>
+    <tr><td>One induction image.</td><td>A second induction image.</td></tr>
+  </tbody></table>
+</section></div></div></body></html>`;
+
+await ok("a table cell holding only a picture keeps it, as an inline placeholder", () => {
+	const p = parseWikipediaArticle(TABLE_PICTURE_HTML, "https://en.wikipedia.org/wiki/McCollough_effect", {});
+	assert.deepEqual(p.images.map((i) => i.source), ["table", "table"]);
+	const md = assembleMarkdown(p.title, p.url, p.sections, [], "standard", false);
+	const row = md.split("\n").find((l) => l.includes("{{IMAGE:"));
+	assert.match(row, /^\| \{\{IMAGE:[^}]+Red_grid\.svg\.png\}\} \| \{\{IMAGE:[^}]+Green_grid\.svg\.png\}\} \|$/);
+	assert.doesNotMatch(md, /File:/);
+});
+
+await ok("embeds on a table row escape their pipes; elsewhere they stay as-is", () => {
+	const { fillImagePlaceholders, formatImageEmbed } = require("../src/imagelink.js");
+	const md = "{{IMAGE:a}}\n| {{IMAGE:a}} | {{IMAGE:b}} |";
+	const out = fillImagePlaceholders(md, (url) => (url === "a" ? formatImageEmbed("A grid.png", "att", "markdown", 250) : undefined));
+	assert.equal(out, "![A grid.png|250](att/A%20grid.png)\n| ![A grid.png\\|250](att/A%20grid.png) | {{IMAGE:b}} |");
+	const wiki = fillImagePlaceholders("| {{IMAGE:a}} |", () => formatImageEmbed("A.png", "", "wikilink", 300));
+	assert.equal(wiki, "| ![[A.png\\|300]] |");
+});
+
 // --- image downloads ------------------------------------------------------------------
 const images = require("../src/images.js");
 

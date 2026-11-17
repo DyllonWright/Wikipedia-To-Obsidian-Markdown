@@ -3,7 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { WIKIMEDIA_USER_AGENT, IMAGE_ACCEPT, downloadCandidates, sniffImageType } = require('./images');
 const { sanitizeFileName } = require('./fallback');
-const { formatImageEmbed, resolveImageStyle } = require('./imagelink');
+const { formatImageEmbed, resolveImageStyle, fillImagePlaceholders } = require('./imagelink');
 
 /**
  * Downloads one image, trying candidate URLs best-first (see src/images.js)
@@ -167,25 +167,15 @@ async function exportArticle(payload) {
   // Replace the image placeholders in markdown with actual image links
   let finalMarkdown = markdown;
   
-  // Replace references
-  for (const [url, filename] of Object.entries(finalImageMap)) {
-    const placeholder = `{{IMAGE:${url}}}`;
-    const imgLink = formatImageLink(filename, saveToVault ? attachmentsFolder : (attachmentsFolder || 'attachments'), linkMode);
-    
-    // Replace all occurrences of this placeholder
-    finalMarkdown = finalMarkdown.split(placeholder).join(imgLink);
-  }
-  
-  // Clean up any unmatched image placeholders (e.g. ones that failed to download)
-  // We replace them with their captions or a failed comment
-  const placeholderRegex = /\{\{IMAGE:([^}]+)\}\}/g;
-  let match;
-  while ((match = placeholderRegex.exec(finalMarkdown)) !== null) {
-    const failedUrl = match[1];
-    const imgData = images.find(i => i.originalUrl === failedUrl);
+  const embedFolder = saveToVault ? attachmentsFolder : (attachmentsFolder || 'attachments');
+  // Downloaded images become embeds; failed ones fall back to their caption
+  // (inline on a table row, so the row stays one line).
+  finalMarkdown = fillImagePlaceholders(finalMarkdown, (url, inTable) => {
+    if (finalImageMap[url] !== undefined) return formatImageLink(finalImageMap[url], embedFolder, linkMode);
+    const imgData = images.find(i => i.originalUrl === url);
     const fallbackText = imgData ? `*Image: ${imgData.caption || 'Missing Image'}*` : '*Image Missing*';
-    finalMarkdown = finalMarkdown.split(match[0]).join(`\n${fallbackText}\n`);
-  }
+    return inTable ? fallbackText : `\n${fallbackText}\n`;
+  });
   
   // 4. Save Markdown File
   const { filePath: mdSavePath } = await getSafeFilePath(baseDir, title, '.md');

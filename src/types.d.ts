@@ -7,7 +7,7 @@ export interface ParsedImage {
 	/** Original pixel width (data-file-width), 0 when unknown. */
 	fileWidth?: number;
 	/** Where the image sat: the infobox, a captioned figure, or a gallery. */
-	source?: "infobox" | "figure" | "gallery";
+	source?: "infobox" | "figure" | "gallery" | "table";
 }
 
 export interface RawSection {
