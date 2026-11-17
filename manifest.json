@@ -1,7 +1,7 @@
 {
 	"id": "advanced-wikipedia-importer",
 	"name": "Advanced Wikipedia Importer",
-	"version": "2.5.0",
+	"version": "2.5.1",
 	"minAppVersion": "1.11.4",
 	"description": "Import Wikipedia articles as clean notes: pick sections, download and rename images, flatten complex tables, and auto-detect film articles.",
 	"author": "Dyllon Wright",
